@@ -31,6 +31,19 @@ class MarketAnalyzer:
         atr = tr.rolling(window=period).mean()
         return atr
 
+    def check_volume_spike(self, curr):
+        """Detects Whale Activity (Volume > 3x Average)."""
+        if curr['Volume'] > (curr['Vol_SMA'] * 3.0):
+            return True
+        return False
+
+    def detect_patterns(self, df):
+        """
+        AI Pattern Recognition Placeholder.
+        Future: Implement Head & Shoulders / Flag detection.
+        """
+        return []
+
     def analyze(self, df):
         """
         Advanced Technical Analysis (Brain of the Bot).
@@ -93,8 +106,6 @@ class MarketAnalyzer:
                 signal_type = "BUY"
                 reasons.append("Trend Following (Uptrend)")
                 reasons.append("MACD Bullish Cross")
-                if curr['Volume'] > curr['Vol_SMA']:
-                    reasons.append("High Volume Support")
 
         # SELL SETUP
         # MACD crosses below Signal Line AND RSI is not Oversold (> 30)
@@ -106,10 +117,15 @@ class MarketAnalyzer:
                 signal_type = "SELL"
                 reasons.append("Trend Following (Downtrend)")
                 reasons.append("MACD Bearish Cross")
-                if curr['Volume'] > curr['Vol_SMA']:
-                    reasons.append("High Volume Support")
 
-        # --- 3. Risk Management (ATR Based) ---
+        # --- 3. Extra Confirmations (Whale Alert) ---
+        if signal_type:
+            if self.check_volume_spike(curr):
+                reasons.append("🐋 WHALE ALERT (High Vol)")
+            elif curr['Volume'] > curr['Vol_SMA']:
+                reasons.append("High Volume Support")
+
+        # --- 4. Risk Management (ATR Based) ---
         atr = curr['ATR']
         entry_price = curr['Close']
 
@@ -124,9 +140,6 @@ class MarketAnalyzer:
                 "RSI": curr['RSI'],
                 "Time": pd.Timestamp.now().strftime("%H:%M:%S")
             }
-
-
-        # Multipliers for SL and TP
 
         # Multipliers for SL and TP
         sl_mult = 1.5  # Stop Loss distance (1.5x ATR)

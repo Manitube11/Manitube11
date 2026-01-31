@@ -122,6 +122,11 @@ class RealTimeDataFeed:
         df['Low'] = df[['Open', 'Close']].min(axis=1) * (1 - np.random.uniform(0, 0.02))
         df['Volume'] = np.random.randint(1000, 100000, size=days)
 
+        # Add Date column to match yfinance structure
+        end_date = pd.Timestamp.now()
+        # date_range length must equal len(df)
+        df['Date'] = pd.date_range(end=end_date, periods=len(df), freq='D')
+
         return df
 
 if __name__ == "__main__":

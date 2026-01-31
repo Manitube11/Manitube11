@@ -1,51 +1,54 @@
 import requests
 import json
+import os
 
 class TelegramNotifier:
     def __init__(self, bot_token=None, chat_id=None):
         self.bot_token = bot_token
         self.chat_id = chat_id
-        self.base_url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage" if self.bot_token else None
+        self.msg_url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage" if self.bot_token else None
+        self.photo_url = f"https://api.telegram.org/bot{self.bot_token}/sendPhoto" if self.bot_token else None
 
-    def send_vip_signal(self, signal_data):
+    def send_vip_signal(self, signal_data, image_path=None):
         """
-        Sends a beautifully formatted VIP signal message.
+        Sends a VIP signal message (Cornix Style) with an optional chart image.
         """
         if not self.bot_token or not self.chat_id:
             return False
 
-        # Emoji Selection based on Signal Type
-        if 'BUY' in signal_data['Type']:
-            header_emoji = "🟢🟢 **VIP BUY SIGNAL** 🟢🟢"
-            side_emoji = "🔼"
+        # Extract Symbol for Hashtag (e.g. "Bitcoin (BTC)" -> "#BTC")
+        symbol_raw = signal_data['Symbol']
+        if '(' in symbol_raw:
+            ticker = symbol_raw.split('(')[1].replace(')', '')
         else:
-            header_emoji = "🔴🔴 **VIP SELL SIGNAL** 🔴🔴"
-            side_emoji = "🔽"
+            ticker = symbol_raw.replace(' ', '')
 
-        # Message Construction
-        msg = f"""
-{header_emoji}
+        # Cornix/Standard Format
+        direction = "Buy" if 'BUY' in signal_data['Type'] else "Sell"
+        emoji = "🟢" if direction == "Buy" else "🔴"
 
-💎 **Asset:** #{signal_data['Symbol'].split()[0]}
-{side_emoji} **Action:** {signal_data['Type']} NOW
+        caption = f"""
+{emoji} **#{ticker}/USDT**
+**Signal Type:** {direction}
 
-📉 **Entry Zone:** ${signal_data['Entry']:,.2f}
+**Entry:** {signal_data['Entry']:,.2f}
 
-🛑 **Stop Loss:** ${signal_data['StopLoss']:,.2f}
-⚠️ **Risk Level:** {signal_data['RiskLevel']}
+**Targets:**
+1) {signal_data['TP1']:,.2f}
+2) {signal_data['TP2']:,.2f}
+3) {signal_data['TP3']:,.2f}
 
-💰 **Targets (Take Profit):**
-TP1: ${signal_data['TP1']:,.2f} (Scalp)
-TP2: ${signal_data['TP2']:,.2f} (Swing)
-TP3: ${signal_data['TP3']:,.2f} (Moon)
+**Stop Loss:** {signal_data['StopLoss']:,.2f}
 
-🧠 **Strategy:** {signal_data['Reason']}
-📊 **RSI:** {signal_data['RSI']:.1f}
-
----------------------------------------
-🤖 *ManiTube AI Engine*
+-------------------
+Risk: {signal_data.get('RiskLevel', 'Medium')}
+Strategy: {signal_data.get('Reason', 'AI Analysis')}
 """
-        return self.send_message(msg)
+
+        if image_path and os.path.exists(image_path):
+            return self.send_photo(image_path, caption)
+        else:
+            return self.send_message(caption)
 
     def send_message(self, text):
         try:
@@ -54,7 +57,7 @@ TP3: ${signal_data['TP3']:,.2f} (Moon)
                 "text": text,
                 "parse_mode": "Markdown"
             }
-            response = requests.post(self.base_url, json=payload, timeout=5)
+            response = requests.post(self.msg_url, json=payload, timeout=5)
             if response.status_code == 200:
                 print(f"[TELEGRAM SENT]")
                 return True
@@ -65,18 +68,26 @@ TP3: ${signal_data['TP3']:,.2f} (Moon)
             print(f"[TELEGRAM EXCEPTION]: {e}")
             return False
 
+    def send_photo(self, photo_path, caption):
+        try:
+            with open(photo_path, 'rb') as f:
+                files = {'photo': f}
+                data = {
+                    'chat_id': self.chat_id,
+                    'caption': caption,
+                    'parse_mode': 'Markdown'
+                }
+                response = requests.post(self.photo_url, files=files, data=data, timeout=15)
+
+            if response.status_code == 200:
+                print(f"[TELEGRAM PHOTO SENT]")
+                return True
+            else:
+                print(f"[TELEGRAM PHOTO ERROR] {response.text}")
+                return False
+        except Exception as e:
+            print(f"[TELEGRAM PHOTO EXCEPTION]: {e}")
+            return False
+
 if __name__ == "__main__":
-    # Test
-    # signal_mock = {
-    #     "Symbol": "Bitcoin (BTC)",
-    #     "Type": "BUY",
-    #     "Entry": 45000.50,
-    #     "StopLoss": 44000.00,
-    #     "TP1": 46000, "TP2": 48000, "TP3": 52000,
-    #     "RiskLevel": "Low",
-    #     "Reason": "Trend Breakout + Vol",
-    #     "RSI": 55.4
-    # }
-    # notifier = TelegramNotifier("TOKEN", "ID")
-    # notifier.send_vip_signal(signal_mock)
     pass
