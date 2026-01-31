@@ -21,6 +21,11 @@ def main():
     TELEGRAM_BOT_TOKEN = "YOUR_BOT_TOKEN"
     TELEGRAM_CHAT_ID = "YOUR_CHAT_ID"
 
+    if TELEGRAM_BOT_TOKEN == "YOUR_BOT_TOKEN" or TELEGRAM_CHAT_ID == "YOUR_CHAT_ID":
+        print("\n[WARNING] Telegram is not configured properly.")
+        print("[هشدار] تنظیمات تلگرام انجام نشده است. لطفاً فایل main.py را ویرایش کنید.")
+        print("برای پیدا کردن Chat ID می‌توانید فایل 'trading_bot/get_chat_id.py' را اجرا کنید.\n")
+
     # 2. Initialization
     print("[1/4] Initializing Modules (ماژول‌ها)...")
     sim = MarketSimulator(start_price=65000, volatility=0.80)
