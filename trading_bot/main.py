@@ -1,22 +1,15 @@
-import tkinter as tk
 import sys
 import os
 
-# Add current directory to path
+# Ensure we can import from the same directory
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from gui_app import TradingApp
 
-def main():
-    try:
-        root = tk.Tk()
-        # Set icon if available (optional)
-        # root.iconbitmap('icon.ico')
-        app = TradingApp(root)
-        root.mainloop()
-    except Exception as e:
-        print(f"CRITICAL ERROR: {e}")
-        input("Press Enter to exit...")
-
 if __name__ == "__main__":
-    main()
+    try:
+        app = TradingApp()
+        app.mainloop()
+    except Exception as e:
+        print(f"Critical Error: {e}")
+        input("Press Enter to Exit...")

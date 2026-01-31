@@ -63,9 +63,54 @@ class RealTimeDataFeed:
         if name in self.assets:
             del self.assets[name]
 
+    def get_live_price(self, symbol_name):
+        """
+        FAST PATH: Fetches only the latest price using 1-minute intervals.
+        Designed for UI updates, not full analysis.
+        Returns: (price, source_type) or (None, "ERROR")
+        """
+        ticker_symbol = self.assets.get(symbol_name)
+        if not ticker_symbol:
+            return None, "NONE"
+
+        if ticker_symbol.startswith('$'):
+            ticker_symbol = ticker_symbol.replace('$', '')
+
+        try:
+            # Try Real-Time 1m Data
+            ticker = yf.Ticker(ticker_symbol)
+            # Fetch 1 day of 1m data to get the absolute latest candle
+            # This is much faster/livelier than daily data
+            df = ticker.history(period="1d", interval="1m")
+
+            if not df.empty:
+                return df['Close'].iloc[-1], "LIVE"
+
+            # If 1m fails (some assets don't support it), try fast info
+            # Note: ticker.info is often slow, but fast_info is better
+            if hasattr(ticker, 'fast_info') and 'last_price' in ticker.fast_info:
+                 return ticker.fast_info['last_price'], "LIVE"
+
+        except Exception as e:
+            pass
+
+        # Fallback: Try Binance API for Crypto (Fastest)
+        price = self._fetch_current_price_fallback(ticker_symbol)
+        if price:
+            return price, "LIVE" # It's technically live from Binance
+
+        # Final Fallback: Simulation (if everything fails)
+        # We generate a single tick based on the realistic simulation
+        # But we need a base. We'll use the _generate_dummy_data single row
+        try:
+            df = self._generate_dummy_data(2, symbol_name) # Small fetch
+            return df['Close'].iloc[-1], "SIM"
+        except:
+            return 0.0, "SIM"
+
     def fetch_history(self, symbol_name, days=100):
         """
-        Fetches historical data including Volume.
+        SLOW PATH: Fetches historical data including Volume.
         Returns: (DataFrame, source_type) where source_type is 'LIVE' or 'SIM'.
         """
         ticker_symbol = self.assets.get(symbol_name)
@@ -204,3 +249,8 @@ if __name__ == "__main__":
     # We can't force fallback easily without mocking, but we can call _generate
     df, source = feed.fetch_history("Bitcoin (BTC)", 100)
     print(f"BTC Source: {source}, Last Price: {df['Close'].iloc[-1]:.2f}")
+
+    # Test Fast Path
+    print("\nTesting Fast Path (Live Price)...")
+    price, src = feed.get_live_price("Bitcoin (BTC)")
+    print(f"BTC Live: ${price:,.2f} ({src})")

@@ -36,6 +36,7 @@ class TradingApp(ctk.CTk):
         self.last_signals = {}
         self.config_file = "config.json"
         self.latest_analysis_data = {} # Store df for chart viewing
+        self.last_analysis_time = {} # Timestamp for last heavy analysis per asset
 
         # --- Layout ---
         self.grid_columnconfigure(1, weight=1)
@@ -163,7 +164,7 @@ class TradingApp(ctk.CTk):
         self.btn_start.configure(state="disabled")
         self.btn_stop.configure(state="normal")
         self.lbl_status.configure(text="STATUS: ONLINE 🟢", text_color="green")
-        self.log("AI Engine Started.")
+        self.log("AI Engine Started (Dual-Loop Mode).")
         threading.Thread(target=self._run_loop, daemon=True).start()
 
     def stop_trading_loop(self):
@@ -174,63 +175,107 @@ class TradingApp(ctk.CTk):
         self.log("AI Engine Stopped.")
 
     def _run_loop(self):
+        """
+        Dual-Rate Loop Implementation:
+        - Fast Loop: Fetches current price every cycle (improves UI responsiveness).
+        - Slow Loop: Fetches full history & analyzes signals every 60s.
+        """
         while self.running:
             assets = list(self.feed.assets.keys())
+
             for asset in assets:
                 if not self.running: break
-                try:
-                    # Unpack Data and Source (LIVE/SIM)
-                    df, source = self.feed.fetch_history(asset, days=300)
 
-                    # Update Status Indicator
-                    if source == "SIM":
-                        self.after(0, lambda: self.lbl_status.configure(text="STATUS: SIMULATION ⚠", text_color="orange"))
-                    elif source == "LIVE" and self.running:
-                         self.after(0, lambda: self.lbl_status.configure(text="STATUS: ONLINE 🟢", text_color="green"))
+                # Check if we need heavy analysis (Slow Loop)
+                last_time = self.last_analysis_time.get(asset, 0)
+                current_time = time.time()
 
-                    analyzed = self.analyzer.analyze(df)
+                if current_time - last_time > 60: # 60 Seconds Interval for Analysis
+                    self._perform_heavy_analysis(asset)
+                    self.last_analysis_time[asset] = current_time
+                else:
+                    # Fast Loop: Just update price
+                    self._perform_fast_price_update(asset)
 
-                    # Store for chart viewing
-                    self.latest_analysis_data[asset] = analyzed
-
-                    signal = self.analyzer.generate_signal(analyzed, asset)
-                    latest = analyzed.iloc[-1]
-
-                    # Determine Trend String
-                    if latest['Close'] > latest['EMA_50']:
-                        trend = "UP ↗"
-                    else:
-                        trend = "DOWN ↘"
-
-                    # Update UI
-                    self.after(0, self._update_row, asset, latest, trend, signal, source)
-
-                    # Handle Signal
-                    if signal['Type'] in ['BUY', 'SELL']:
-                         last_sig = self.last_signals.get(asset)
-                         if signal['Type'] != last_sig:
-                             self.log(f"🔥 SIGNAL: {asset} -> {signal['Type']}")
-
-                             # Generate Visuals
-                             chart_path = self.viz.generate_chart(analyzed, asset)
-
-                             if self.notifier:
-                                 # Send signal with Source warning if needed
-                                 if source == "SIM":
-                                     signal['Reason'] += " (SIMULATED DATA)"
-                                 self.notifier.send_vip_signal(signal, image_path=chart_path)
-
-                             self.last_signals[asset] = signal['Type']
-
-                except Exception as e:
-                    print(f"Error {asset}: {e}")
-
+                # Short sleep between assets to prevent freezing UI thread if using main thread (but we are in thread)
+                # We still sleep to avoid hitting API rate limits too hard
                 time.sleep(0.5)
 
-            # Pause between cycles
-            for _ in range(20):
+            # Small pause between full cycles, but much shorter than before
+            # We want to loop back to the first asset relatively quickly
+            for _ in range(5): # 5 seconds pause instead of 20
                 if not self.running: break
                 time.sleep(1)
+
+    def _perform_fast_price_update(self, asset):
+        try:
+            # 1. Fetch LIVE Price only (Fast)
+            price, source = self.feed.get_live_price(asset)
+
+            if price is not None:
+                # Update UI Price Column only
+                self.after(0, self._update_price_only, asset, price, source)
+
+        except Exception as e:
+            pass # Silent fail on fast path
+
+    def _perform_heavy_analysis(self, asset):
+        try:
+            # 1. Fetch Full History (Slow)
+            df, source = self.feed.fetch_history(asset, days=300)
+
+            # Update Status Indicator
+            if source == "SIM":
+                self.after(0, lambda: self.lbl_status.configure(text="STATUS: SIMULATION ⚠", text_color="orange"))
+            elif source == "LIVE" and self.running:
+                    self.after(0, lambda: self.lbl_status.configure(text="STATUS: ONLINE 🟢", text_color="green"))
+
+            analyzed = self.analyzer.analyze(df)
+
+            # Store for chart viewing
+            self.latest_analysis_data[asset] = analyzed
+
+            signal = self.analyzer.generate_signal(analyzed, asset)
+            latest = analyzed.iloc[-1]
+
+            # Determine Trend String
+            if latest['Close'] > latest['EMA_50']:
+                trend = "UP ↗"
+            else:
+                trend = "DOWN ↘"
+
+            # Update UI (Full Row)
+            self.after(0, self._update_row, asset, latest, trend, signal, source)
+
+            # Handle Signal
+            if signal['Type'] in ['BUY', 'SELL']:
+                    last_sig = self.last_signals.get(asset)
+                    if signal['Type'] != last_sig:
+                        self.log(f"🔥 SIGNAL: {asset} -> {signal['Type']}")
+
+                        # Generate Visuals
+                        chart_path = self.viz.generate_chart(analyzed, asset)
+
+                        if self.notifier:
+                            # Send signal with Source warning if needed
+                            if source == "SIM":
+                                signal['Reason'] += " (SIMULATED DATA)"
+                            self.notifier.send_vip_signal(signal, image_path=chart_path)
+
+                        self.last_signals[asset] = signal['Type']
+
+        except Exception as e:
+            print(f"Error Analysis {asset}: {e}")
+
+    def _update_price_only(self, asset, price, source):
+        """Updates just the price column to keep it looking 'live'."""
+        if self.tree.exists(asset):
+            # We need to get current values to preserve other columns
+            current_values = list(self.tree.item(asset, "values"))
+            if len(current_values) > 1:
+                current_values[1] = f"${price:,.2f}" # Update Price
+                # current_values[7] = datetime.now().strftime("%H:%M") # Update Time? Maybe too distracting
+                self.tree.item(asset, values=current_values)
 
     def _update_row(self, asset, row, trend, signal, source):
         # Format Status Text
