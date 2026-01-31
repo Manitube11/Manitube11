@@ -2,6 +2,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import time
+import requests
 
 class RealTimeDataFeed:
     def __init__(self):
@@ -64,56 +65,125 @@ class RealTimeDataFeed:
 
     def fetch_history(self, symbol_name, days=100):
         """
-        Fetches historical data including Volume for advanced analysis.
-        Tries yfinance first; falls back to simulation if that fails (for testing/offline).
+        Fetches historical data including Volume.
+        Returns: (DataFrame, source_type) where source_type is 'LIVE' or 'SIM'.
         """
         ticker_symbol = self.assets.get(symbol_name)
         if not ticker_symbol:
-            return pd.DataFrame()
+            return pd.DataFrame(), "NONE"
 
-        # Clean ticker symbol (remove $ if present)
         if ticker_symbol.startswith('$'):
             ticker_symbol = ticker_symbol.replace('$', '')
 
         try:
+            # 1. Try yfinance
             ticker = yf.Ticker(ticker_symbol)
-            # Fetch daily data
-            # Suppress yfinance internal printing by not capturing stderr, but we can't easily.
-            # We just try-catch.
             data = ticker.history(period=f"{days}d", interval="1d")
 
-            if not data.empty and len(data) > 10: # Ensure we have enough data
-                # Clean up and ensure we have Volume
+            if not data.empty and len(data) > 10:
                 data = data[['Open', 'High', 'Low', 'Close', 'Volume']].reset_index()
-                return data
+                # Ensure timezone naive for consistency
+                if data['Date'].dt.tz is not None:
+                    data['Date'] = data['Date'].dt.tz_localize(None)
+                return data, "LIVE"
             else:
-                # If data is empty or too short, raise exception to trigger fallback
-                raise Exception(f"Insufficient data for {ticker_symbol}")
+                raise Exception("Empty data from yfinance")
 
         except Exception as e:
-            print(f"[Data Feed] Warning: Could not fetch real data for {symbol_name} (Ticker: {ticker_symbol}). Switching to Simulation.")
-            return self._generate_dummy_data(days, symbol_name)
+            # 2. Fallback
+            # Try to get a real price to anchor the simulation
+            real_price = self._fetch_current_price_fallback(ticker_symbol)
 
-    def _generate_dummy_data(self, days, symbol_name):
-        """Generates realistic-looking dummy data for testing."""
+            print(f"[Data Feed] Warning: Live data failed for {symbol_name}. Switching to Simulation (Anchor Price: {real_price})")
+
+            # Generate dummy data anchored to the real price (or a realistic default)
+            df = self._generate_dummy_data(days, symbol_name, anchor_price=real_price)
+            return df, "SIM"
+
+    def _fetch_current_price_fallback(self, ticker):
+        """
+        Tries to fetch the current price from alternative public APIs (Binance)
+        to make the simulation realistic. Returns None if it fails.
+        """
+        # Simple mapping for Binance (remove -USD, append USDT)
+        # This is a 'best effort' mapping
+        try:
+            symbol = ticker.replace("-USD", "USDT")
+            if "=" in symbol or "^" in symbol: return None # Skip futures/indices for simple API
+
+            # Binance API
+            url = f"https://api.binance.com/api/v3/ticker/price?symbol={symbol}"
+            r = requests.get(url, timeout=3)
+            if r.status_code == 200:
+                data = r.json()
+                return float(data['price'])
+        except:
+            pass
+        return None
+
+    def _generate_dummy_data(self, days, symbol_name, anchor_price=None):
+        """
+        Generates dummy data.
+        If anchor_price is provided, the data ends near that price.
+        Otherwise, uses realistic hardcoded defaults.
+        """
         np.random.seed(int(time.time()) + len(symbol_name))
 
-        # Base price guesses
+        # Realistic Fallback Prices (Updated Feb 2025)
         base_prices = {
-            "Bitcoin (BTC)": 95000, "Ethereum (ETH)": 3200, "Solana (SOL)": 110,
-            "Gold (XAU)": 2000, "Oil (Crude)": 75, "Apple (AAPL)": 230
-        }
-        start_price = base_prices.get(symbol_name, 100) # Default to 100 if unknown
+            "Bitcoin (BTC)": 78000,
+            "Ethereum (ETH)": 2600,
+            "Solana (SOL)": 95,
+            "XRP (XRP)": 1.10,
+            "Binance Coin (BNB)": 600,
+            "Dogecoin (DOGE)": 0.14,
+            "Cardano (ADA)": 0.45,
+            "Tron (TRX)": 0.12,
+            "Avalanche (AVAX)": 35,
+            "Chainlink (LINK)": 15,
+            "Shiba Inu (SHIB)": 0.00002,
+            "Polkadot (DOT)": 7.00,
+            "Litecoin (LTC)": 70,
 
-        # Geometric Brownian Motion
+            "Gold (XAU)": 2050,
+            "Oil (Crude)": 75,
+            "Apple (AAPL)": 225,
+            "Nvidia (NVDA)": 120,
+            "Tesla (TSLA)": 200,
+            "Microsoft (MSFT)": 415,
+            "Google (GOOG)": 175,
+            "Meta (META)": 470,
+
+            "EUR/USD": 1.08,
+            "GBP/USD": 1.26,
+            "USD/JPY": 150,
+        }
+
+        # Determine target price
+        if anchor_price:
+            target_price = anchor_price
+        else:
+            # Fuzzy match or default
+            target_price = 100 # absolute fallback
+            for key, val in base_prices.items():
+                if key in symbol_name:
+                    target_price = val
+                    break
+
+        # Generate History Backwards from Target
+        prices = [target_price]
+
         mu = 0.0002  # drift
         sigma = 0.02 # volatility
         dt = 1
 
-        prices = [start_price]
+        # We generate backwards so the *last* point is the target price
         for _ in range(days):
-            price = prices[-1] * np.exp((mu - 0.5 * sigma**2) * dt + sigma * np.sqrt(dt) * np.random.normal())
-            prices.append(price)
+            # Inverse GBM roughly
+            prev_price = prices[-1] / np.exp((mu - 0.5 * sigma**2) * dt + sigma * np.sqrt(dt) * np.random.normal())
+            prices.append(prev_price)
+
+        prices.reverse() # Now it flows from past to target
 
         df = pd.DataFrame()
         df['Close'] = prices[1:]
@@ -122,16 +192,15 @@ class RealTimeDataFeed:
         df['Low'] = df[['Open', 'Close']].min(axis=1) * (1 - np.random.uniform(0, 0.02))
         df['Volume'] = np.random.randint(1000, 100000, size=days)
 
-        # Add Date column to match yfinance structure
         end_date = pd.Timestamp.now()
-        # date_range length must equal len(df)
         df['Date'] = pd.date_range(end=end_date, periods=len(df), freq='D')
 
         return df
 
 if __name__ == "__main__":
     feed = RealTimeDataFeed()
-    print("Testing Feed with Extended Assets...")
-    # Test a stock
-    df = feed.fetch_history("Apple (AAPL)", 100)
-    print("AAPL Data Check:", not df.empty)
+    print("Testing Feed...")
+    # Test fallback
+    # We can't force fallback easily without mocking, but we can call _generate
+    df, source = feed.fetch_history("Bitcoin (BTC)", 100)
+    print(f"BTC Source: {source}, Last Price: {df['Close'].iloc[-1]:.2f}")

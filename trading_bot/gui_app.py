@@ -112,7 +112,7 @@ class TradingApp(ctk.CTk):
 
         for col in cols:
             self.tree.heading(col, text=col)
-            width = 200 if col == "Status" else 100
+            width = 250 if col == "Status" else 100
             self.tree.column(col, width=width, anchor="center")
 
         self.tree.pack(fill="both", expand=True, pady=10)
@@ -179,7 +179,15 @@ class TradingApp(ctk.CTk):
             for asset in assets:
                 if not self.running: break
                 try:
-                    df = self.feed.fetch_history(asset, days=300)
+                    # Unpack Data and Source (LIVE/SIM)
+                    df, source = self.feed.fetch_history(asset, days=300)
+
+                    # Update Status Indicator
+                    if source == "SIM":
+                        self.after(0, lambda: self.lbl_status.configure(text="STATUS: SIMULATION ⚠", text_color="orange"))
+                    elif source == "LIVE" and self.running:
+                         self.after(0, lambda: self.lbl_status.configure(text="STATUS: ONLINE 🟢", text_color="green"))
+
                     analyzed = self.analyzer.analyze(df)
 
                     # Store for chart viewing
@@ -195,7 +203,7 @@ class TradingApp(ctk.CTk):
                         trend = "DOWN ↘"
 
                     # Update UI
-                    self.after(0, self._update_row, asset, latest, trend, signal)
+                    self.after(0, self._update_row, asset, latest, trend, signal, source)
 
                     # Handle Signal
                     if signal['Type'] in ['BUY', 'SELL']:
@@ -207,6 +215,9 @@ class TradingApp(ctk.CTk):
                              chart_path = self.viz.generate_chart(analyzed, asset)
 
                              if self.notifier:
+                                 # Send signal with Source warning if needed
+                                 if source == "SIM":
+                                     signal['Reason'] += " (SIMULATED DATA)"
                                  self.notifier.send_vip_signal(signal, image_path=chart_path)
 
                              self.last_signals[asset] = signal['Type']
@@ -221,17 +232,21 @@ class TradingApp(ctk.CTk):
                 if not self.running: break
                 time.sleep(1)
 
-    def _update_row(self, asset, row, trend, signal):
-        # Check if row exists, update it. If not, insert.
-        # Treeview doesn't have good 'exists' check for items not inserted by id.
-        # We used asset name as iid.
+    def _update_row(self, asset, row, trend, signal, source):
+        # Format Status Text
+        status_text = signal.get('Reason', 'Scan...')
+        if source == "SIM":
+            status_text = f"[SIM] {status_text}"
+        else:
+            status_text = f"[LIVE] {status_text}"
+
         vals = (
             asset,
             f"${row['Close']:,.2f}",
             trend,
             f"{row['MACD']:.2f}",
             f"{row['RSI']:.1f}",
-            signal.get('Reason', 'Scan...'),
+            status_text,
             signal['Type'],
             datetime.now().strftime("%H:%M")
         )
