@@ -61,10 +61,13 @@ class MarketAnalyzer:
     def generate_signal(self, df, symbol):
         """
         Generates a Professional VIP Signal based on analyzed data.
-        Returns a dict or None.
+        Returns a dict with 'Type': 'BUY'/'SELL'/'WAIT' and details.
         """
         if len(df) < 50: # Not enough data
-            return None
+            return {
+                "Symbol": symbol, "Type": "WAIT", "Reason": "Insufficient Data",
+                "Entry": 0, "StopLoss": 0, "TP1": 0, "TP2": 0, "TP3": 0, "RiskLevel": "-", "RSI": 0
+            }
 
         curr = df.iloc[-1]
         prev = df.iloc[-2]
@@ -76,6 +79,7 @@ class MarketAnalyzer:
 
         signal_type = None
         reasons = []
+        status_msg = "Market Choppy"
 
         # --- 2. Entry Logic (MACD Crossover + RSI + Volume) ---
 
@@ -83,30 +87,46 @@ class MarketAnalyzer:
         # MACD crosses above Signal Line AND RSI is not Overbought (< 70)
         macd_cross_up = (prev['MACD'] <= prev['Signal_Line']) and (curr['MACD'] > curr['Signal_Line'])
 
-        if is_bullish_trend and macd_cross_up and curr['RSI'] < 70:
-            signal_type = "BUY"
-            reasons.append("Trend Following (Uptrend)")
-            reasons.append("MACD Bullish Cross")
-            if curr['Volume'] > curr['Vol_SMA']:
-                reasons.append("High Volume Support")
+        if is_bullish_trend:
+            status_msg = "Uptrend (Waiting for Dip/Cross)"
+            if macd_cross_up and curr['RSI'] < 70:
+                signal_type = "BUY"
+                reasons.append("Trend Following (Uptrend)")
+                reasons.append("MACD Bullish Cross")
+                if curr['Volume'] > curr['Vol_SMA']:
+                    reasons.append("High Volume Support")
 
         # SELL SETUP
         # MACD crosses below Signal Line AND RSI is not Oversold (> 30)
         macd_cross_down = (prev['MACD'] >= prev['Signal_Line']) and (curr['MACD'] < curr['Signal_Line'])
 
-        if is_bearish_trend and macd_cross_down and curr['RSI'] > 30:
-            signal_type = "SELL"
-            reasons.append("Trend Following (Downtrend)")
-            reasons.append("MACD Bearish Cross")
-            if curr['Volume'] > curr['Vol_SMA']:
-                reasons.append("High Volume Support")
-
-        if not signal_type:
-            return None
+        if is_bearish_trend:
+            status_msg = "Downtrend (Waiting for Rally/Cross)"
+            if macd_cross_down and curr['RSI'] > 30:
+                signal_type = "SELL"
+                reasons.append("Trend Following (Downtrend)")
+                reasons.append("MACD Bearish Cross")
+                if curr['Volume'] > curr['Vol_SMA']:
+                    reasons.append("High Volume Support")
 
         # --- 3. Risk Management (ATR Based) ---
         atr = curr['ATR']
         entry_price = curr['Close']
+
+        if not signal_type:
+            return {
+                "Symbol": symbol,
+                "Type": "WAIT",
+                "Entry": entry_price,
+                "StopLoss": 0, "TP1": 0, "TP2": 0, "TP3": 0,
+                "RiskLevel": "-",
+                "Reason": status_msg,
+                "RSI": curr['RSI'],
+                "Time": pd.Timestamp.now().strftime("%H:%M:%S")
+            }
+
+
+        # Multipliers for SL and TP
 
         # Multipliers for SL and TP
         sl_mult = 1.5  # Stop Loss distance (1.5x ATR)

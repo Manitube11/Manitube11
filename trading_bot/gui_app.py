@@ -91,7 +91,7 @@ class TradingApp:
         tree_frame = ttk.Frame(self.tab_dashboard)
         tree_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
-        columns = ("Symbol", "Price", "Trend", "MACD", "RSI", "ATR", "Signal", "Time")
+        columns = ("Symbol", "Price", "Trend", "MACD", "RSI", "Status", "Signal", "Time")
         self.tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=12)
 
         scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
@@ -102,7 +102,11 @@ class TradingApp:
 
         for col in columns:
             self.tree.heading(col, text=col)
-            self.tree.column(col, width=100, anchor="center")
+            # Make Status column wider
+            if col == "Status":
+                self.tree.column(col, width=200, anchor="center")
+            else:
+                self.tree.column(col, width=90, anchor="center")
 
         # Initial Population
         self.refresh_tree_items()
@@ -119,7 +123,7 @@ class TradingApp:
             self.tree.delete(item)
 
         for asset in self.feed.assets.keys():
-            self.tree.insert("", "end", iid=asset, values=(asset, "...", "...", "...", "...", "...", "WAIT", "-"))
+            self.tree.insert("", "end", iid=asset, values=(asset, "...", "...", "...", "...", "Initializing...", "WAIT", "-"))
 
     def log(self, message):
         timestamp = datetime.now().strftime("%H:%M:%S")
@@ -220,8 +224,9 @@ class TradingApp:
             'TP1': 12500.00,
             'TP2': 13000.00,
             'TP3': 14000.00,
-            'Risk': 'TEST',
-            'Reason': 'User Requested Test'
+            'RiskLevel': 'Low (Test)',
+            'Reason': 'User Requested Test',
+            'RSI': 50.0
         }
         self.notifier.send_vip_signal(dummy_signal)
         messagebox.showinfo("Sent", "Test Signal sent to Telegram. Check your Channel!")
@@ -288,7 +293,7 @@ class TradingApp:
                     self.root.after(0, self._update_tree, asset, latest, trend, signal_data)
 
                     # Handle Signal
-                    if signal_data:
+                    if signal_data and signal_data['Type'] in ['BUY', 'SELL']:
                         sig_type = signal_data['Type']
                         # Prevent repeating same signal type consecutively
                         last_sig = self.last_signals.get(asset)
@@ -313,13 +318,13 @@ class TradingApp:
         price = f"${row['Close']:,.2f}"
         macd = f"{row['MACD']:.2f}"
         rsi = f"{row['RSI']:.1f}"
-        atr = f"{row['ATR']:.2f}"
 
-        sig_str = signal_data['Type'] if signal_data else "WAIT"
+        sig_str = signal_data['Type']
+        status = signal_data.get('Reason', 'Scanning...')
 
         # Check if item exists (it might have been removed)
         if self.tree.exists(asset):
-            self.tree.item(asset, values=(asset, price, trend, macd, rsi, atr, sig_str, datetime.now().strftime("%H:%M")))
+            self.tree.item(asset, values=(asset, price, trend, macd, rsi, status, sig_str, datetime.now().strftime("%H:%M")))
 
 if __name__ == "__main__":
     root = tk.Tk()

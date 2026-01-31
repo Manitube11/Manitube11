@@ -15,7 +15,7 @@ class TelegramNotifier:
             return False
 
         # Emoji Selection based on Signal Type
-        if signal_data['Type'] == 'BUY':
+        if 'BUY' in signal_data['Type']:
             header_emoji = "🟢🟢 **VIP BUY SIGNAL** 🟢🟢"
             side_emoji = "🔼"
         else:

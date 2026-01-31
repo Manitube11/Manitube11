@@ -71,9 +71,15 @@ class RealTimeDataFeed:
         if not ticker_symbol:
             return pd.DataFrame()
 
+        # Clean ticker symbol (remove $ if present)
+        if ticker_symbol.startswith('$'):
+            ticker_symbol = ticker_symbol.replace('$', '')
+
         try:
             ticker = yf.Ticker(ticker_symbol)
             # Fetch daily data
+            # Suppress yfinance internal printing by not capturing stderr, but we can't easily.
+            # We just try-catch.
             data = ticker.history(period=f"{days}d", interval="1d")
 
             if not data.empty and len(data) > 10: # Ensure we have enough data
@@ -85,7 +91,7 @@ class RealTimeDataFeed:
                 raise Exception(f"Insufficient data for {ticker_symbol}")
 
         except Exception as e:
-            # print(f"Warning: Could not fetch real data for {symbol_name} ({e}). Using Simulation.")
+            print(f"[Data Feed] Warning: Could not fetch real data for {symbol_name} (Ticker: {ticker_symbol}). Switching to Simulation.")
             return self._generate_dummy_data(days, symbol_name)
 
     def _generate_dummy_data(self, days, symbol_name):
