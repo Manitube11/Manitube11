@@ -5,21 +5,62 @@ import time
 
 class RealTimeDataFeed:
     def __init__(self):
-        # Expanded Asset List (Top Cryptos + Commodities)
-        self.assets = {
+        # Default Assets (Top Crypto, Forex, Commodities, Stocks, Indices)
+        self.default_assets = {
+            # --- Crypto ---
             "Bitcoin (BTC)": "BTC-USD",
             "Ethereum (ETH)": "ETH-USD",
-            "Binance Coin (BNB)": "BNB-USD",
             "Solana (SOL)": "SOL-USD",
             "XRP (XRP)": "XRP-USD",
-            "Cardano (ADA)": "ADA-USD",
+            "Binance Coin (BNB)": "BNB-USD",
             "Dogecoin (DOGE)": "DOGE-USD",
+            "Cardano (ADA)": "ADA-USD",
+            "Tron (TRX)": "TRX-USD",
+            "Avalanche (AVAX)": "AVAX-USD",
+            "Chainlink (LINK)": "LINK-USD",
+            "Shiba Inu (SHIB)": "SHIB-USD",
             "Polkadot (DOT)": "DOT-USD",
-            "Polygon (MATIC)": "MATIC-USD",
             "Litecoin (LTC)": "LTC-USD",
+            "Bitcoin Cash (BCH)": "BCH-USD",
+            "Uniswap (UNI)": "UNI-USD",
+            "Pepe (PEPE)": "PEPE-USD",
+
+            # --- Commodities ---
             "Gold (XAU)": "GC=F",
-            "Oil (Crude)": "CL=F"
+            "Silver (XAG)": "SI=F",
+            "Oil (Crude)": "CL=F",
+            "Natural Gas": "NG=F",
+
+            # --- Forex ---
+            "EUR/USD": "EURUSD=X",
+            "GBP/USD": "GBPUSD=X",
+            "USD/JPY": "JPY=X",
+
+            # --- US Tech Stocks ---
+            "Apple (AAPL)": "AAPL",
+            "Nvidia (NVDA)": "NVDA",
+            "Tesla (TSLA)": "TSLA",
+            "Microsoft (MSFT)": "MSFT",
+            "Amazon (AMZN)": "AMZN",
+            "Google (GOOG)": "GOOG",
+            "Meta (META)": "META",
+
+            # --- Indices ---
+            "S&P 500": "^GSPC",
+            "Nasdaq 100": "^IXIC",
         }
+
+        # Working dictionary (starts with defaults, can be modified)
+        self.assets = self.default_assets.copy()
+
+    def add_asset(self, name, ticker):
+        """Adds a new asset to the watchlist."""
+        self.assets[name] = ticker
+
+    def remove_asset(self, name):
+        """Removes an asset from the watchlist."""
+        if name in self.assets:
+            del self.assets[name]
 
     def fetch_history(self, symbol_name, days=100):
         """
@@ -35,12 +76,13 @@ class RealTimeDataFeed:
             # Fetch daily data
             data = ticker.history(period=f"{days}d", interval="1d")
 
-            if not data.empty:
+            if not data.empty and len(data) > 10: # Ensure we have enough data
                 # Clean up and ensure we have Volume
                 data = data[['Open', 'High', 'Low', 'Close', 'Volume']].reset_index()
                 return data
             else:
-                raise Exception("Empty data returned")
+                # If data is empty or too short, raise exception to trigger fallback
+                raise Exception(f"Insufficient data for {ticker_symbol}")
 
         except Exception as e:
             # print(f"Warning: Could not fetch real data for {symbol_name} ({e}). Using Simulation.")
@@ -53,9 +95,9 @@ class RealTimeDataFeed:
         # Base price guesses
         base_prices = {
             "Bitcoin (BTC)": 95000, "Ethereum (ETH)": 3200, "Solana (SOL)": 110,
-            "Gold (XAU)": 2000, "Oil (Crude)": 75
+            "Gold (XAU)": 2000, "Oil (Crude)": 75, "Apple (AAPL)": 230
         }
-        start_price = base_prices.get(symbol_name, 100)
+        start_price = base_prices.get(symbol_name, 100) # Default to 100 if unknown
 
         # Geometric Brownian Motion
         mu = 0.0002  # drift
@@ -79,5 +121,6 @@ class RealTimeDataFeed:
 if __name__ == "__main__":
     feed = RealTimeDataFeed()
     print("Testing Feed with Extended Assets...")
-    df = feed.fetch_history("Solana (SOL)", 100)
-    print(df.tail())
+    # Test a stock
+    df = feed.fetch_history("Apple (AAPL)", 100)
+    print("AAPL Data Check:", not df.empty)
