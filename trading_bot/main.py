@@ -17,14 +17,18 @@ def main():
     print("=======================================================\n")
 
     # 1. Configuration
-    # You can set your Telegram keys here or leave as placeholders
-    TELEGRAM_BOT_TOKEN = "YOUR_BOT_TOKEN"
-    TELEGRAM_CHAT_ID = "YOUR_CHAT_ID"
+    # Updated with user provided credentials
+    TELEGRAM_BOT_TOKEN = "8415108013:AAG9_GgOVuCRGVR8j1aWz2mLzvVjH7F5GP8"
+    TELEGRAM_CHAT_ID = "25355589"
 
+    # Check if still default (safety check, though we just set them)
     if TELEGRAM_BOT_TOKEN == "YOUR_BOT_TOKEN" or TELEGRAM_CHAT_ID == "YOUR_CHAT_ID":
         print("\n[WARNING] Telegram is not configured properly.")
         print("[هشدار] تنظیمات تلگرام انجام نشده است. لطفاً فایل main.py را ویرایش کنید.")
         print("برای پیدا کردن Chat ID می‌توانید فایل 'trading_bot/get_chat_id.py' را اجرا کنید.\n")
+        show_footer_help = True
+    else:
+        show_footer_help = False
 
     # 2. Initialization
     print("[1/4] Initializing Modules (ماژول‌ها)...")
@@ -80,8 +84,10 @@ def main():
         print("No trades were executed.")
     print("="*40)
 
-    print("\n[INFO] To enable Telegram notifications, edit 'main.py' and set TELEGRAM_BOT_TOKEN.")
-    print("[راهنما] برای فعال‌سازی تلگرام، فایل main.py را ویرایش کرده و توکن ربات را وارد کنید.")
+    # Only show the help footer if config is missing
+    if show_footer_help:
+        print("\n[INFO] To enable Telegram notifications, edit 'main.py' and set TELEGRAM_BOT_TOKEN.")
+        print("[راهنما] برای فعال‌سازی تلگرام، فایل main.py را ویرایش کرده و توکن ربات را وارد کنید.")
 
 if __name__ == "__main__":
     main()

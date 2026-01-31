@@ -33,6 +33,16 @@ class TelegramNotifier:
             if response.status_code == 200:
                 print(f"\n[TELEGRAM SENT]: {message}")
                 return True
+            elif response.status_code == 400:
+                print(f"\n[TELEGRAM ERROR] Bad Request (400).")
+                print(">>> راه حل: ربات شما اجازه ارسال پیام به این چت را ندارد.")
+                print(f">>> اگر این آیدی عددی ({self.chat_id}) متعلق به خودتان است: به ربات پیام دهید و دکمه Start را بزنید.")
+                print(f">>> اگر متعلق به کانال است: ربات را در کانال Admin کنید.")
+                return False
+            elif response.status_code == 401:
+                print(f"\n[TELEGRAM ERROR] Unauthorized (401).")
+                print(">>> راه حل: توکن ربات اشتباه است. لطفاً توکن را بررسی کنید.")
+                return False
             else:
                 print(f"\n[TELEGRAM ERROR] Status: {response.status_code}, Response: {response.text}")
                 return False
