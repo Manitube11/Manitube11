@@ -4,8 +4,8 @@ import time
 import threading
 import os
 from datetime import datetime
-from .education import get_definition, get_all_topics
-from .news_sentiment import NewsAnalyzer
+from education import get_definition, get_all_topics
+from news_sentiment import NewsAnalyzer
 
 class BotManager:
     def __init__(self, token, chat_id=None, users_file="users.json", signals_file="signals.json"):
