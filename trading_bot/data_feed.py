@@ -63,11 +63,31 @@ class RealTimeDataFeed:
         if name in self.assets:
             del self.assets[name]
 
+    def _smart_fetch(self, ticker_symbol, period, interval):
+        """
+        Helper: Tries to fetch data. If empty and no hyphen, tries appending -USD.
+        Returns: (DataFrame, Used_Ticker)
+        """
+        # 1. Try Original
+        ticker = yf.Ticker(ticker_symbol)
+        df = ticker.history(period=period, interval=interval)
+
+        if not df.empty:
+            return df, ticker_symbol
+
+        # 2. Smart Retry: Append -USD if likely crypto (no hyphen, no =, no ^)
+        if "-" not in ticker_symbol and "=" not in ticker_symbol and "^" not in ticker_symbol:
+            smart_ticker = f"{ticker_symbol}-USD"
+            ticker = yf.Ticker(smart_ticker)
+            df = ticker.history(period=period, interval=interval)
+            if not df.empty:
+                return df, smart_ticker
+
+        return df, ticker_symbol
+
     def get_live_price(self, symbol_name):
         """
         FAST PATH: Fetches only the latest price using 1-minute intervals.
-        Designed for UI updates, not full analysis.
-        Returns: (price, source_type) or (None, "ERROR")
         """
         ticker_symbol = self.assets.get(symbol_name)
         if not ticker_symbol:
@@ -77,33 +97,28 @@ class RealTimeDataFeed:
             ticker_symbol = ticker_symbol.replace('$', '')
 
         try:
-            # Try Real-Time 1m Data
-            ticker = yf.Ticker(ticker_symbol)
-            # Fetch 1 day of 1m data to get the absolute latest candle
-            # This is much faster/livelier than daily data
-            df = ticker.history(period="1d", interval="1m")
+            # Smart Fetch (Try "BONK" -> "BONK-USD" if needed)
+            df, used_ticker = self._smart_fetch(ticker_symbol, "1d", "1m")
 
             if not df.empty:
                 return df['Close'].iloc[-1], "LIVE"
 
-            # If 1m fails (some assets don't support it), try fast info
-            # Note: ticker.info is often slow, but fast_info is better
+            # Try fast_info on the *last successful* ticker (used_ticker)
+            ticker = yf.Ticker(used_ticker)
             if hasattr(ticker, 'fast_info') and 'last_price' in ticker.fast_info:
                  return ticker.fast_info['last_price'], "LIVE"
 
         except Exception as e:
             pass
 
-        # Fallback: Try Binance API for Crypto (Fastest)
+        # Fallback: Try Binance API
         price = self._fetch_current_price_fallback(ticker_symbol)
         if price:
-            return price, "LIVE" # It's technically live from Binance
+            return price, "LIVE"
 
-        # Final Fallback: Simulation (if everything fails)
-        # We generate a single tick based on the realistic simulation
-        # But we need a base. We'll use the _generate_dummy_data single row
+        # Final Fallback: Simulation
         try:
-            df = self._generate_dummy_data(2, symbol_name) # Small fetch
+            df = self._generate_dummy_data(2, symbol_name)
             return df['Close'].iloc[-1], "SIM"
         except:
             return 0.0, "SIM"
@@ -111,7 +126,6 @@ class RealTimeDataFeed:
     def fetch_history(self, symbol_name, days=100):
         """
         SLOW PATH: Fetches historical data including Volume.
-        Returns: (DataFrame, source_type) where source_type is 'LIVE' or 'SIM'.
         """
         ticker_symbol = self.assets.get(symbol_name)
         if not ticker_symbol:
@@ -121,42 +135,44 @@ class RealTimeDataFeed:
             ticker_symbol = ticker_symbol.replace('$', '')
 
         try:
-            # 1. Try yfinance
-            ticker = yf.Ticker(ticker_symbol)
-            data = ticker.history(period=f"{days}d", interval="1d")
+            # Smart Fetch
+            df, used_ticker = self._smart_fetch(ticker_symbol, f"{days}d", "1d")
 
-            if not data.empty and len(data) > 10:
-                data = data[['Open', 'High', 'Low', 'Close', 'Volume']].reset_index()
-                # Ensure timezone naive for consistency
-                if data['Date'].dt.tz is not None:
-                    data['Date'] = data['Date'].dt.tz_localize(None)
-                return data, "LIVE"
+            if not df.empty and len(df) > 10:
+                df = df[['Open', 'High', 'Low', 'Close', 'Volume']].reset_index()
+                if df['Date'].dt.tz is not None:
+                    df['Date'] = df['Date'].dt.tz_localize(None)
+
+                # If we successfully corrected the ticker (e.g. BONK -> BONK-USD),
+                # we should probably update the map so next time it's faster.
+                if used_ticker != ticker_symbol:
+                    self.assets[symbol_name] = used_ticker
+
+                return df, "LIVE"
             else:
                 raise Exception("Empty data from yfinance")
 
         except Exception as e:
-            # 2. Fallback
-            # Try to get a real price to anchor the simulation
+            # Fallback
             real_price = self._fetch_current_price_fallback(ticker_symbol)
-
             print(f"[Data Feed] Warning: Live data failed for {symbol_name}. Switching to Simulation (Anchor Price: {real_price})")
-
-            # Generate dummy data anchored to the real price (or a realistic default)
             df = self._generate_dummy_data(days, symbol_name, anchor_price=real_price)
             return df, "SIM"
 
     def _fetch_current_price_fallback(self, ticker):
         """
-        Tries to fetch the current price from alternative public APIs (Binance)
-        to make the simulation realistic. Returns None if it fails.
+        Tries to fetch the current price from alternative public APIs (Binance).
         """
-        # Simple mapping for Binance (remove -USD, append USDT)
-        # This is a 'best effort' mapping
         try:
+            # Try to guess the pair for Binance
+            # If ticker is "BONK", make it "BONKUSDT"
+            # If ticker is "BONK-USD", make it "BONKUSDT"
             symbol = ticker.replace("-USD", "USDT")
-            if "=" in symbol or "^" in symbol: return None # Skip futures/indices for simple API
+            if "-" not in ticker and "USDT" not in symbol:
+                symbol += "USDT"
 
-            # Binance API
+            if "=" in symbol or "^" in symbol: return None
+
             url = f"https://api.binance.com/api/v3/ticker/price?symbol={symbol}"
             r = requests.get(url, timeout=3)
             if r.status_code == 200:
@@ -167,14 +183,9 @@ class RealTimeDataFeed:
         return None
 
     def _generate_dummy_data(self, days, symbol_name, anchor_price=None):
-        """
-        Generates dummy data.
-        If anchor_price is provided, the data ends near that price.
-        Otherwise, uses realistic hardcoded defaults.
-        """
+        """Generates dummy data."""
         np.random.seed(int(time.time()) + len(symbol_name))
 
-        # Realistic Fallback Prices (Updated Feb 2025)
         base_prices = {
             "Bitcoin (BTC)": 78000,
             "Ethereum (ETH)": 2600,
@@ -189,7 +200,6 @@ class RealTimeDataFeed:
             "Shiba Inu (SHIB)": 0.00002,
             "Polkadot (DOT)": 7.00,
             "Litecoin (LTC)": 70,
-
             "Gold (XAU)": 2050,
             "Oil (Crude)": 75,
             "Apple (AAPL)": 225,
@@ -198,37 +208,30 @@ class RealTimeDataFeed:
             "Microsoft (MSFT)": 415,
             "Google (GOOG)": 175,
             "Meta (META)": 470,
-
             "EUR/USD": 1.08,
             "GBP/USD": 1.26,
             "USD/JPY": 150,
         }
 
-        # Determine target price
         if anchor_price:
             target_price = anchor_price
         else:
-            # Fuzzy match or default
-            target_price = 100 # absolute fallback
+            target_price = 100
             for key, val in base_prices.items():
                 if key in symbol_name:
                     target_price = val
                     break
 
-        # Generate History Backwards from Target
         prices = [target_price]
-
-        mu = 0.0002  # drift
-        sigma = 0.02 # volatility
+        mu = 0.0002
+        sigma = 0.02
         dt = 1
 
-        # We generate backwards so the *last* point is the target price
         for _ in range(days):
-            # Inverse GBM roughly
             prev_price = prices[-1] / np.exp((mu - 0.5 * sigma**2) * dt + sigma * np.sqrt(dt) * np.random.normal())
             prices.append(prev_price)
 
-        prices.reverse() # Now it flows from past to target
+        prices.reverse()
 
         df = pd.DataFrame()
         df['Close'] = prices[1:]
@@ -244,13 +247,13 @@ class RealTimeDataFeed:
 
 if __name__ == "__main__":
     feed = RealTimeDataFeed()
-    print("Testing Feed...")
-    # Test fallback
-    # We can't force fallback easily without mocking, but we can call _generate
-    df, source = feed.fetch_history("Bitcoin (BTC)", 100)
-    print(f"BTC Source: {source}, Last Price: {df['Close'].iloc[-1]:.2f}")
+    print("Testing Feed Smart Fetch...")
 
-    # Test Fast Path
-    print("\nTesting Fast Path (Live Price)...")
-    price, src = feed.get_live_price("Bitcoin (BTC)")
-    print(f"BTC Live: ${price:,.2f} ({src})")
+    # Test 1: Known bad ticker (DOGE) -> Should correct to DOGE-USD
+    print("Test 1: Fetching 'DOGE' (no suffix)...")
+    feed.add_asset("Doge Test", "DOGE")
+    df, src = feed.fetch_history("Doge Test", 10)
+    print(f"Result: {src}, Rows: {len(df)}")
+
+    # Check if correction persisted
+    print(f"Corrected Ticker in Map: {feed.assets['Doge Test']}")

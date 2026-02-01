@@ -358,7 +358,7 @@ class TradingApp(ctk.CTk):
     def add_asset_dialog(self):
         name = simpledialog.askstring("Add", "Asset Name (e.g. Bonk):")
         if not name: return
-        ticker = simpledialog.askstring("Add", "Yahoo Ticker (e.g. BONK-USD):")
+        ticker = simpledialog.askstring("Add", "Symbol/Ticker (e.g. BONK or BONK-USD):")
         if not ticker: return
         self.feed.add_asset(name, ticker)
         self.tree.insert("", "end", iid=name, values=(name, "...", "...", "...", "...", "Added", "WAIT", "-"))
