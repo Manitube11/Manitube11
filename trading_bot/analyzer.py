@@ -32,17 +32,20 @@ class MarketAnalyzer:
         return atr
 
     def check_volume_spike(self, curr):
-        """Detects Whale Activity (Volume > 3x Average)."""
-        if curr['Volume'] > (curr['Vol_SMA'] * 3.0):
+        """Detects Whale Activity (Volume > 2.5x Average)."""
+        if pd.isna(curr['Vol_SMA']): return False
+        if curr['Volume'] > (curr['Vol_SMA'] * 2.5):
             return True
         return False
 
-    def detect_patterns(self, df):
+    def detect_whale_activity(self, df):
         """
-        AI Pattern Recognition Placeholder.
-        Future: Implement Head & Shoulders / Flag detection.
+        Scans for abnormal volume surges in the recent candles.
+        Returns: Boolean (True if Whale Detected)
         """
-        return []
+        if len(df) < 20: return False
+        curr = df.iloc[-1]
+        return self.check_volume_spike(curr)
 
     def analyze(self, df):
         """
@@ -79,11 +82,15 @@ class MarketAnalyzer:
         if len(df) < 50: # Not enough data
             return {
                 "Symbol": symbol, "Type": "WAIT", "Reason": "Insufficient Data",
-                "Entry": 0, "StopLoss": 0, "TP1": 0, "TP2": 0, "TP3": 0, "RiskLevel": "-", "RSI": 0
+                "Entry": 0, "StopLoss": 0, "TP1": 0, "TP2": 0, "TP3": 0, "RiskLevel": "-", "RSI": 0,
+                "Whale": False
             }
 
         curr = df.iloc[-1]
         prev = df.iloc[-2]
+
+        # --- Whale Check ---
+        is_whale = self.check_volume_spike(curr)
 
         # --- 1. Trend Filter ---
         # Bullish: Price > EMA 50 > EMA 200
@@ -119,11 +126,14 @@ class MarketAnalyzer:
                 reasons.append("MACD Bearish Cross")
 
         # --- 3. Extra Confirmations (Whale Alert) ---
-        if signal_type:
-            if self.check_volume_spike(curr):
-                reasons.append("🐋 WHALE ALERT (High Vol)")
-            elif curr['Volume'] > curr['Vol_SMA']:
-                reasons.append("High Volume Support")
+        if is_whale:
+            if signal_type:
+                reasons.append("🐋 WHALE ALERT (Volume Surge)")
+            else:
+                status_msg += " [🐋 WHALE DETECTED]"
+
+        if signal_type and curr['Volume'] > curr['Vol_SMA']:
+             reasons.append("High Volume Support")
 
         # --- 4. Risk Management (ATR Based) ---
         atr = curr['ATR']
@@ -138,6 +148,7 @@ class MarketAnalyzer:
                 "RiskLevel": "-",
                 "Reason": status_msg,
                 "RSI": curr['RSI'],
+                "Whale": is_whale,
                 "Time": pd.Timestamp.now().strftime("%H:%M:%S")
             }
 
@@ -179,21 +190,21 @@ class MarketAnalyzer:
             "RiskLevel": risk_level,
             "Reason": " + ".join(reasons),
             "RSI": curr['RSI'],
+            "Whale": is_whale,
             "Time": pd.Timestamp.now().strftime("%H:%M:%S")
         }
 
 if __name__ == "__main__":
     from data_feed import RealTimeDataFeed
     feed = RealTimeDataFeed()
-    df = feed.fetch_history("Bitcoin (BTC)", 200)
-
-    an = MarketAnalyzer()
-    df = an.analyze(df)
-    sig = an.generate_signal(df, "BTC")
-    print("Analyzed Data Tail:")
-    print(df[['Close', 'EMA_50', 'MACD', 'ATR']].tail())
-    print("\nSignal Check:")
-    if sig:
-        print(sig)
-    else:
-        print("No Signal Detected (Current market condition doesn't meet VIP criteria)")
+    # Mock data fetch for test
+    try:
+        df, _ = feed.fetch_history("Bitcoin (BTC)", 200)
+        an = MarketAnalyzer()
+        df = an.analyze(df)
+        sig = an.generate_signal(df, "BTC")
+        print("Analyzed Data Tail:")
+        print(df[['Close', 'EMA_50', 'MACD', 'ATR', 'Vol_SMA']].tail())
+        print(f"\nSignal Check: Whale={sig['Whale']}")
+    except:
+        pass

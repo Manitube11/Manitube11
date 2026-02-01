@@ -16,6 +16,7 @@ from data_feed import RealTimeDataFeed
 from analyzer import MarketAnalyzer
 from notifier import TelegramNotifier
 from visualizer import Visualizer
+from news_sentiment import NewsAnalyzer
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("dark-blue")
@@ -24,19 +25,20 @@ class TradingApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("ManiTube AI Trading Bot - PRO VERSION")
-        self.geometry("1200x800")
+        self.title("ManiTube AI Trading Bot - VIP ALL-IN-ONE")
+        self.geometry("1200x850")
 
         # --- State ---
         self.running = False
         self.feed = RealTimeDataFeed()
         self.analyzer = MarketAnalyzer()
         self.viz = Visualizer()
+        self.news_bot = NewsAnalyzer() # New News Bot
         self.notifier = None
         self.last_signals = {}
         self.config_file = "config.json"
-        self.latest_analysis_data = {} # Store df for chart viewing
-        self.last_analysis_time = {} # Timestamp for last heavy analysis per asset
+        self.latest_analysis_data = {}
+        self.last_analysis_time = {}
 
         # --- Layout ---
         self.grid_columnconfigure(1, weight=1)
@@ -45,9 +47,9 @@ class TradingApp(ctk.CTk):
         # Side Navigation
         self.sidebar = ctk.CTkFrame(self, width=200, corner_radius=0)
         self.sidebar.grid(row=0, column=0, sticky="nsew")
-        self.sidebar.grid_rowconfigure(4, weight=1)
+        self.sidebar.grid_rowconfigure(5, weight=1)
 
-        self.logo_label = ctk.CTkLabel(self.sidebar, text="ManiTube AI\nPRO 3.0", font=ctk.CTkFont(size=20, weight="bold"))
+        self.logo_label = ctk.CTkLabel(self.sidebar, text="ManiTube AI\nVIP 4.0", font=ctk.CTkFont(size=20, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=20)
 
         self.btn_dashboard = ctk.CTkButton(self.sidebar, text="📊 Live Market", command=self.show_dashboard)
@@ -57,7 +59,7 @@ class TradingApp(ctk.CTk):
         self.btn_config.grid(row=2, column=0, padx=20, pady=10)
 
         self.lbl_status = ctk.CTkLabel(self.sidebar, text="STATUS: OFFLINE", text_color="red")
-        self.lbl_status.grid(row=5, column=0, padx=20, pady=10)
+        self.lbl_status.grid(row=6, column=0, padx=20, pady=10)
 
         # Main Area
         self.main_frame = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
@@ -72,7 +74,7 @@ class TradingApp(ctk.CTk):
 
         self.show_dashboard()
         self.load_settings()
-        self.log("System Initialized. Ready.")
+        self.log("System Initialized. VIP Engine Ready.")
 
     def show_dashboard(self):
         self.frame_config.pack_forget()
@@ -83,20 +85,30 @@ class TradingApp(ctk.CTk):
         self.frame_config.pack(fill="both", expand=True)
 
     def _build_dashboard(self):
-        # Top Controls
-        ctrl_frame = ctk.CTkFrame(self.frame_dashboard)
-        ctrl_frame.pack(fill="x", pady=10)
+        # 1. News / Sentiment Header
+        self.news_frame = ctk.CTkFrame(self.frame_dashboard, height=40, fg_color="#333333")
+        self.news_frame.pack(fill="x", pady=(0, 10))
 
-        self.btn_start = ctk.CTkButton(ctrl_frame, text="▶ START AI ENGINE", fg_color="green", command=self.start_trading_loop)
+        self.lbl_news = ctk.CTkLabel(self.news_frame, text="📰 Market Sentiment: Initializing...", font=("Arial", 14))
+        self.lbl_news.pack(side="left", padx=10, pady=5)
+
+        self.lbl_whale_alert = ctk.CTkLabel(self.news_frame, text="", text_color="cyan", font=("Arial", 14, "bold"))
+        self.lbl_whale_alert.pack(side="right", padx=10, pady=5)
+
+        # 2. Top Controls
+        ctrl_frame = ctk.CTkFrame(self.frame_dashboard)
+        ctrl_frame.pack(fill="x", pady=5)
+
+        self.btn_start = ctk.CTkButton(ctrl_frame, text="▶ START VIP ENGINE", fg_color="green", command=self.start_trading_loop)
         self.btn_start.pack(side="left", padx=10, pady=10)
 
         self.btn_stop = ctk.CTkButton(ctrl_frame, text="⏹ STOP", fg_color="red", state="disabled", command=self.stop_trading_loop)
         self.btn_stop.pack(side="left", padx=10, pady=10)
 
-        self.btn_chart = ctk.CTkButton(ctrl_frame, text="📈 View Selected Chart", command=self.view_selected_chart)
+        self.btn_chart = ctk.CTkButton(ctrl_frame, text="📈 View Chart", command=self.view_selected_chart)
         self.btn_chart.pack(side="right", padx=10, pady=10)
 
-        # Treeview (using ttk needs styling)
+        # 3. Treeview
         style = ttk.Style()
         style.theme_use("clam")
         style.configure("Treeview",
@@ -109,7 +121,7 @@ class TradingApp(ctk.CTk):
         style.map("Treeview", background=[("selected", "#1f538d")])
 
         cols = ("Symbol", "Price", "Trend", "MACD", "RSI", "Status", "Signal", "Time")
-        self.tree = ttk.Treeview(self.frame_dashboard, columns=cols, show="headings", height=15)
+        self.tree = ttk.Treeview(self.frame_dashboard, columns=cols, show="headings", height=18)
 
         for col in cols:
             self.tree.heading(col, text=col)
@@ -118,8 +130,8 @@ class TradingApp(ctk.CTk):
 
         self.tree.pack(fill="both", expand=True, pady=10)
 
-        # Log
-        self.log_box = ctk.CTkTextbox(self.frame_dashboard, height=150, font=("Consolas", 12))
+        # 4. Log
+        self.log_box = ctk.CTkTextbox(self.frame_dashboard, height=120, font=("Consolas", 12))
         self.log_box.pack(fill="x", pady=10)
         self.log_box.configure(state="disabled")
 
@@ -146,7 +158,7 @@ class TradingApp(ctk.CTk):
         f_asset = ctk.CTkFrame(self.frame_config)
         f_asset.pack(fill="x", pady=10)
 
-        ctk.CTkLabel(f_asset, text="Asset Management", font=("Arial", 16, "bold")).pack(pady=10)
+        ctk.CTkLabel(f_asset, text="Asset Management (Auto-Detects New Coins)", font=("Arial", 16, "bold")).pack(pady=10)
 
         ctk.CTkButton(f_asset, text="Add New Asset", command=self.add_asset_dialog).pack(side="left", padx=20, pady=20)
         ctk.CTkButton(f_asset, text="Remove Selected", command=self.remove_asset_dialog, fg_color="red").pack(side="left", padx=20, pady=20)
@@ -164,102 +176,107 @@ class TradingApp(ctk.CTk):
         self.btn_start.configure(state="disabled")
         self.btn_stop.configure(state="normal")
         self.lbl_status.configure(text="STATUS: ONLINE 🟢", text_color="green")
-        self.log("AI Engine Started (Dual-Loop Mode).")
-        threading.Thread(target=self._run_loop, daemon=True).start()
+        self.log("VIP Engine Started. Listening to Markets & News...")
+
+        # Launch Threads
+        threading.Thread(target=self._run_loop, daemon=True).start() # Trading Loop
+        threading.Thread(target=self._news_loop, daemon=True).start() # News Loop
 
     def stop_trading_loop(self):
         self.running = False
         self.btn_start.configure(state="normal")
         self.btn_stop.configure(state="disabled")
         self.lbl_status.configure(text="STATUS: OFFLINE 🔴", text_color="red")
-        self.log("AI Engine Stopped.")
+        self.log("Engine Stopped.")
+
+    def _news_loop(self):
+        """Fetches Global Sentiment every 5 mins."""
+        while self.running:
+            try:
+                sentiment, score = self.news_bot.fetch_sentiment()
+                msg = f"📰 Market Sentiment: {sentiment} (Score: {score}/100)"
+                self.after(0, lambda: self.lbl_news.configure(text=msg))
+
+                # Color code
+                color = "green" if score > 60 else ("red" if score < 40 else "white")
+                self.after(0, lambda: self.lbl_news.configure(text_color=color))
+
+            except Exception as e:
+                print(f"News Loop Error: {e}")
+
+            # Sleep 5 mins
+            for _ in range(300):
+                if not self.running: return
+                time.sleep(1)
 
     def _run_loop(self):
-        """
-        Dual-Rate Loop Implementation:
-        - Fast Loop: Fetches current price every cycle (improves UI responsiveness).
-        - Slow Loop: Fetches full history & analyzes signals every 60s.
-        """
         while self.running:
             assets = list(self.feed.assets.keys())
 
             for asset in assets:
                 if not self.running: break
 
-                # Check if we need heavy analysis (Slow Loop)
                 last_time = self.last_analysis_time.get(asset, 0)
                 current_time = time.time()
 
-                if current_time - last_time > 60: # 60 Seconds Interval for Analysis
+                # Slow Loop (60s) vs Fast Loop
+                if current_time - last_time > 60:
                     self._perform_heavy_analysis(asset)
                     self.last_analysis_time[asset] = current_time
                 else:
-                    # Fast Loop: Just update price
                     self._perform_fast_price_update(asset)
 
-                # Short sleep between assets to prevent freezing UI thread if using main thread (but we are in thread)
-                # We still sleep to avoid hitting API rate limits too hard
                 time.sleep(0.5)
 
-            # Small pause between full cycles, but much shorter than before
-            # We want to loop back to the first asset relatively quickly
-            for _ in range(5): # 5 seconds pause instead of 20
+            for _ in range(5):
                 if not self.running: break
                 time.sleep(1)
 
     def _perform_fast_price_update(self, asset):
         try:
-            # 1. Fetch LIVE Price only (Fast)
             price, source = self.feed.get_live_price(asset)
-
             if price is not None:
-                # Update UI Price Column only
                 self.after(0, self._update_price_only, asset, price, source)
-
-        except Exception as e:
-            pass # Silent fail on fast path
+        except Exception:
+            pass
 
     def _perform_heavy_analysis(self, asset):
         try:
-            # 1. Fetch Full History (Slow)
             df, source = self.feed.fetch_history(asset, days=300)
 
-            # Update Status Indicator
             if source == "SIM":
                 self.after(0, lambda: self.lbl_status.configure(text="STATUS: SIMULATION ⚠", text_color="orange"))
             elif source == "LIVE" and self.running:
-                    self.after(0, lambda: self.lbl_status.configure(text="STATUS: ONLINE 🟢", text_color="green"))
+                self.after(0, lambda: self.lbl_status.configure(text="STATUS: ONLINE 🟢", text_color="green"))
 
             analyzed = self.analyzer.analyze(df)
-
-            # Store for chart viewing
             self.latest_analysis_data[asset] = analyzed
 
+            # Generate Signal with Whale Check
             signal = self.analyzer.generate_signal(analyzed, asset)
             latest = analyzed.iloc[-1]
 
-            # Determine Trend String
             if latest['Close'] > latest['EMA_50']:
                 trend = "UP ↗"
             else:
                 trend = "DOWN ↘"
 
-            # Update UI (Full Row)
             self.after(0, self._update_row, asset, latest, trend, signal, source)
+
+            # --- WHALE ALERT GLOBAL UI ---
+            if signal.get('Whale'):
+                self.after(0, lambda: self.lbl_whale_alert.configure(text=f"🐋 WHALE IN {asset}!", text_color="cyan"))
+                self.log(f"🐋 WHALE ACTIVITY DETECTED IN {asset}!")
 
             # Handle Signal
             if signal['Type'] in ['BUY', 'SELL']:
                     last_sig = self.last_signals.get(asset)
                     if signal['Type'] != last_sig:
                         self.log(f"🔥 SIGNAL: {asset} -> {signal['Type']}")
-
-                        # Generate Visuals
                         chart_path = self.viz.generate_chart(analyzed, asset)
 
                         if self.notifier:
-                            # Send signal with Source warning if needed
-                            if source == "SIM":
-                                signal['Reason'] += " (SIMULATED DATA)"
+                            if source == "SIM": signal['Reason'] += " (SIMULATED)"
                             self.notifier.send_vip_signal(signal, image_path=chart_path)
 
                         self.last_signals[asset] = signal['Type']
@@ -268,18 +285,17 @@ class TradingApp(ctk.CTk):
             print(f"Error Analysis {asset}: {e}")
 
     def _update_price_only(self, asset, price, source):
-        """Updates just the price column to keep it looking 'live'."""
         if self.tree.exists(asset):
-            # We need to get current values to preserve other columns
             current_values = list(self.tree.item(asset, "values"))
             if len(current_values) > 1:
-                current_values[1] = f"${price:,.2f}" # Update Price
-                # current_values[7] = datetime.now().strftime("%H:%M") # Update Time? Maybe too distracting
+                current_values[1] = f"${price:,.2f}"
                 self.tree.item(asset, values=current_values)
 
     def _update_row(self, asset, row, trend, signal, source):
-        # Format Status Text
         status_text = signal.get('Reason', 'Scan...')
+        if signal.get('Whale'):
+            status_text = f"🐋 {status_text}"
+
         if source == "SIM":
             status_text = f"[SIM] {status_text}"
         else:
@@ -313,11 +329,11 @@ class TradingApp(ctk.CTk):
             path = self.viz.generate_chart(df, asset)
             if path:
                 self.log(f"Opening Chart for {asset}...")
-                if platform.system() == 'Darwin':       # macOS
+                if platform.system() == 'Darwin':
                     subprocess.call(('open', path))
-                elif platform.system() == 'Windows':    # Windows
+                elif platform.system() == 'Windows':
                     os.startfile(path)
-                else:                                   # linux variants
+                else:
                     subprocess.call(('xdg-open', path))
         else:
             messagebox.showinfo("Info", "No data available yet. Wait for scan.")
@@ -349,7 +365,6 @@ class TradingApp(ctk.CTk):
                     cust = cfg.get("custom_assets", {})
                     self.feed.assets.update(cust)
 
-                # Init Tree
                 for asset in self.feed.assets:
                     self.tree.insert("", "end", iid=asset, values=(asset, "...", "...", "...", "...", "Init...", "WAIT", "-"))
             except Exception as e:
@@ -387,9 +402,8 @@ class TradingApp(ctk.CTk):
             "Reason": "Manual Test Request",
             "RSI": 50
         }
-        # Create a dummy chart for test
         self.log("Sending Test Signal...")
-        self.notifier.send_vip_signal(dummy) # No image for simple test
+        self.notifier.send_vip_signal(dummy)
         messagebox.showinfo("Sent", "Test signal sent!")
 
 if __name__ == "__main__":
