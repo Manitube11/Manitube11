@@ -3,19 +3,15 @@ import ssl
 import time
 import concurrent.futures
 
-# List of SNIs that are often unblocked in Iran
+# The user provided these working domains
 COMMON_SNIS = [
-    "www.google.com", "www.microsoft.com", "www.samsung.com",
-    "www.skype.com", "www.wikipedia.org", "www.bing.com",
-    "www.digikala.com", "www.snapp.ir", "www.telewebion.com",
-    "www.aparat.com", "www.shatelland.com", "www.soft98.ir"
+    "skyroom.online", "gharar.ir", "igap.net", "shopingnet.ir",
+    "www.telewebion.com", "www.aparat.com", "snapp.ir", "digikala.com"
 ]
 
 def test_sni_connectivity(sni, timeout=2.0):
-    """Tests if a specific SNI is blocked on the current network."""
-    # We use a known stable IP (Cloudflare 1.1.1.1 or Google 8.8.8.8)
-    # just to see if the SNI handshake passes through the ISP's DPI.
-    test_ips = ["1.1.1.1", "1.0.0.1", "172.67.13.1", "104.16.132.229"]
+    # Testing against multiple IPs to ensure the SNI itself is not blocked
+    test_ips = ["1.1.1.1", "172.67.13.1", "104.16.132.229", "8.8.8.8"]
 
     context = ssl.create_default_context()
     context.check_hostname = False
@@ -31,8 +27,7 @@ def test_sni_connectivity(sni, timeout=2.0):
     return False
 
 def find_best_sni(max_workers=10):
-    """Scans a list of SNIs to find which ones are open on the user's ISP."""
-    print(f"[+] Scanning {len(COMMON_SNIS)} common domains to find an unblocked SNI...")
+    print(f"[+] Testing White-listed Iranian domains...")
     clean_snis = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_sni = {executor.submit(test_sni_connectivity, sni): sni for sni in COMMON_SNIS}
@@ -40,5 +35,5 @@ def find_best_sni(max_workers=10):
             sni = future_to_sni[future]
             if future.result():
                 clean_snis.append(sni)
-                print(f"    [OK] {sni} is open.")
+                print(f"    [✔] {sni} is verified as OPEN.")
     return clean_snis
