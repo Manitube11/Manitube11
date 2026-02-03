@@ -11,17 +11,35 @@ def analyze_market(data, api_key, symbol):
     try:
         genai.configure(api_key=api_key)
 
-        # Try to use the newer, more stable model first, then fallback
-        model_name = 'gemini-1.5-flash'
+        # Priority list of models based on availability
+        # We prioritize newer, faster models found in the user's account
+        model_candidates = [
+            'gemini-2.0-flash',       # Latest fast model
+            'gemini-2.0-flash-lite',  # Lightweight alternative
+            'gemini-1.5-flash',       # Previous standard
+            'gemini-1.5-pro',
+            'gemini-pro'              # Legacy fallback
+        ]
 
-        try:
-            model = genai.GenerativeModel(model_name)
-        except:
-             model = genai.GenerativeModel('gemini-pro')
+        model = None
+        used_model_name = ""
+
+        for m_name in model_candidates:
+            try:
+                # Attempt to instantiate the model
+                model = genai.GenerativeModel(m_name)
+                # We make a lightweight test call or just assume it works if no error on instantiation
+                # But instantiation doesn't hit the network. We'll proceed to generate content.
+                used_model_name = m_name
+                break
+            except:
+                continue
+
+        # If loop finishes without error, 'model' is set to the first successful candidate
+        # (or last if all fail instantiation, which is unlikely for the class itself).
+        # Real validation happens on generate_content.
 
         # Prepare the data for the prompt.
-        # We'll take the last 30 records to keep the prompt size reasonable but informative.
-        # We assume data now has more columns (MACD, Bollinger, etc.)
         recent_data = data.tail(30).to_string()
 
         prompt = f"""
@@ -49,8 +67,23 @@ def analyze_market(data, api_key, symbol):
         **Tone**: Professional, confident, and structured. Use emojis for readability.
         """
 
-        response = model.generate_content(prompt)
-        return response.text
+        # We need a loop for generation because instantiation might succeed but generation fails (404)
+        last_error = ""
+        for m_name in model_candidates:
+            try:
+                model = genai.GenerativeModel(m_name)
+                response = model.generate_content(prompt)
+                return response.text
+            except Exception as e:
+                last_error = str(e)
+                # If 404 or not found, continue to next model
+                if "404" in str(e) or "not found" in str(e).lower():
+                    continue
+                else:
+                    # If it's another error (auth, quota), break and return error
+                    return f"Error connecting to AI ({m_name}): {str(e)}"
+
+        return f"Error: Could not find a working model. Tried: {', '.join(model_candidates)}. Last error: {last_error}"
 
     except Exception as e:
         return f"Error connecting to AI: {str(e)}\n\n*Hint: Check your API Key or try again later.*"
