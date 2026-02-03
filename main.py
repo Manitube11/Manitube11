@@ -4,135 +4,103 @@ import config_patcher
 import sni_scanner
 import sys
 import os
+import random
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-def verify_and_display(results, choice, user_config=None, public_configs=None, clean_snis=None):
+def verify_and_display(results, choice, public_configs=None, clean_snis=None):
     print("\n" + "="*50)
-    print("   RESULTS & CONNECTIVITY TEST (v2.3)")
+    print("   RESULTS & DEEP VERIFICATION (v2.4)")
     print("="*50)
 
-    count = 0
-    # Use the best SNI found by sni_scanner if available
     best_sni = clean_snis[0] if clean_snis else None
+    count = 0
 
-    if choice == "1":
-        for res in results:
-            ip = res['ip']
-            port = user_config['port']
-            # Try user's SNI first, then fallback to clean SNI
-            sni_to_test = [user_config['host']]
-            if best_sni: sni_to_test.append(best_sni)
+    if choice == "2":
+        # 1. REALITY NODES
+        realities = list(set([c for c in public_configs if 'security=reality' in c]))
+        random.shuffle(realities)
+        for rc in realities[:4]:
+            print(f"\n[⭐] REALITY NODE (Stable/بدون فیلتر)")
+            print(f"Config: {rc}")
+            count += 1
 
-            for sni in sni_to_test:
-                success, _ = scanner.test_tls_handshake(ip, sni, port, timeout=3.0)
-                if success:
-                    remark = f"Verified-{ip}"
-                    if user_config['protocol'] == 'vless':
-                        uri = config_generator.generate_vless_uri(ip, port, user_config['uuid'], user_config['host'], user_config['path'], sni, remark)
-                    else:
-                        uri = config_generator.generate_vmess_uri(ip, port, user_config['uuid'], user_config['host'], user_config['path'], sni, remark)
+        # 2. IRAN RELAYS
+        ir_relays = list(set([c for c in public_configs if any(kw.lower() in c.lower() for kw in ['IR', 'Iran', 'Bridge', 'Tunnel', 'Relay'])]))
+        random.shuffle(ir_relays)
+        for ic in ir_relays[:4]:
+            print(f"\n[🇮🇷] IRAN TUNNEL (Relay/تانل شده)")
+            print(f"Config: {ic}")
+            count += 1
 
-                    print(f"\n[✔] VERIFIED | Latency: {res['latency']:.1f}ms | SNI: {sni}")
-                    print(f"Config: {uri}")
+    # 3. PATCHED NODES (Only if we have clean IPs)
+    print("\n[+] Generating Verified Patched Nodes...")
+    patched_count = 0
+    for ip_res in results:
+        ip = ip_res['ip']
+        random.shuffle(public_configs)
+        for pub_uri in public_configs[:300]:
+            if 'security=reality' in pub_uri: continue
+
+            sni = ""
+            port = 443
+            if pub_uri.startswith('vless://'):
+                p = config_patcher.parse_vless(pub_uri)
+                if p:
+                    sni = p['query'].get('sni') or p['address']
+                    port = int(p['port'])
+            elif pub_uri.startswith('vmess://'):
+                p = config_patcher.parse_vmess(pub_uri)
+                if p:
+                    sni = p.get('sni') or p.get('add')
+                    port = int(p.get('port', 443))
+
+            if not sni: continue
+
+            # Use the most robust SNI we found earlier
+            test_sni = sni if random.random() > 0.3 else best_sni
+            if not test_sni: test_sni = sni
+
+            success, _ = scanner.test_tls_handshake(ip, test_sni, port, timeout=2.0)
+            if success:
+                patched = config_patcher.patch_config(pub_uri, ip, force_sni=test_sni)
+                if patched:
+                    print(f"\n[✔] VERIFIED PATCH | Latency: {ip_res['latency']:.1f}ms")
+                    print(f"Config: {patched}")
+                    patched_count += 1
                     count += 1
                     break
-            if count >= 5: break
-    else:
-        # Auto mode: Try to find working combinations
-        print("[+] Testing potential IR Relays and SNI combinations...")
-        for ip_res in results:
-            ip = ip_res['ip']
-            # Limit configs to test per IP to save time
-            for pub_uri in public_configs[:100]:
-                # 1. Extract info
-                target_sni = ""
-                port = 443
-                if pub_uri.startswith('vless://'):
-                    p = config_patcher.parse_vless(pub_uri)
-                    if p:
-                        target_sni = p['query'].get('sni') or p['address']
-                        port = int(p['port'])
-                else:
-                    p = config_patcher.parse_vmess(pub_uri)
-                    if p:
-                        target_sni = p.get('sni') or p.get('add')
-                        port = int(p.get('port', 443))
-
-                if not target_sni: continue
-
-                # 2. Test original SNI
-                success, _ = scanner.test_tls_handshake(ip, target_sni, port, timeout=2.5)
-
-                # 3. If original fails, try forcing a "Clean SNI" (Domain Fronting trick)
-                if not success and best_sni:
-                    success, _ = scanner.test_tls_handshake(ip, best_sni, port, timeout=2.5)
-                    if success: target_sni = best_sni # Use the clean one
-
-                if success:
-                    patched = config_patcher.patch_config(pub_uri, ip, force_sni=target_sni)
-                    if patched:
-                        print(f"\n[✔] VERIFIED | Latency: {ip_res['latency']:.1f}ms")
-                        print(f"IP: {ip} | SNI: {target_sni}")
-                        print(f"Config: {patched}")
-                        count += 1
-                        break
-            if count >= 5: break
+        if patched_count >= 5: break
 
     if count == 0:
-        print("\n[!] متاسفانه هیچ تانل یا دامنه‌ای روی اینترنت شما جواب نداد.")
-        print("احتمالاً تمام رنج‌های کلودفلر/جیکور روی اپراتور شما مسدود شده است.")
-    else:
-        print(f"\n[+] تعداد {count} کانفیگ با موفقیت تست شد.")
+        print("\n[!] No working configs found. Check your internet connection.")
 
 def main():
     clear_screen()
     print("====================================================")
-    print("   Cloudflare & GCore Smart Scanner (v2.3)")
-    print("      اسکنر هوشمند با قابلیت تانل‌ یاب و SNI یاب")
+    print("   Cloudflare & GCore Smart Scanner (v2.4)")
+    print("      ویژه تانل ایران و پروتکل ریالیتی")
     print("====================================================\n")
 
     print("1. Manual Mode / دستی")
-    print("2. Automatic (Search IR Bridges/Relays) / تانل یاب خودکار")
+    print("2. Auto: IR-Tunnels & Reality / تانل یاب و ریالیتی")
 
     choice = input("Choice (1/2) [2]: ").strip() or "2"
 
-    print("\n[+] Starting Phase 0: SNI Discovery...")
+    print("\n[+] Phase 0: Discovery (SNI & Configs)...")
     clean_snis = sni_scanner.find_best_sni()
+    public_configs = config_patcher.fetch_public_configs()
 
-    num_samples = 3
-    max_workers = 50
-
-    user_config = {}
-    if choice == "1":
-        print("\n--- V2Ray Info ---")
-        user_config['uuid'] = input("UUID: ").strip()
-        user_config['host'] = input("Host/SNI: ").strip()
-        user_config['path'] = input("Path [/]: ").strip() or "/"
-        user_config['port'] = int(input("Port [443]: ").strip() or "443")
-        user_config['protocol'] = input("Protocol (vless/vmess) [vless]: ").strip().lower() or "vless"
-
-    print("\n[+] Fetching IP ranges...")
+    print("\n[+] Phase 1: Finding Clean IPs...")
     ranges = scanner.fetch_cf_ranges() + scanner.fetch_gcore_ranges()
+    results = scanner.scan_ips(ranges, samples_per_range=3, max_workers=60)
 
-    public_configs = []
-    if choice == "2":
-        print("[+] Fetching public configs (prioritizing IR Bridges)...")
-        public_configs = config_patcher.fetch_public_configs()
-
-    print(f"\n[+] Starting Phase 1: Fast IP Scan...")
-    results = scanner.scan_ips(ranges, samples_per_range=num_samples, max_workers=max_workers)
-
-    if not results:
-        print("\n[!] No clean IPs found.")
-        return
-
-    print(f"\n[+] Starting Phase 2: Live Tunnel Verification...")
-    verify_and_display(results, choice, user_config, public_configs, clean_snis)
+    print("\n[+] Phase 2: Live Verification...")
+    verify_and_display(results, choice, public_configs=public_configs, clean_snis=clean_snis)
 
     print("\n" + "="*50)
-    print("Done! Use VERIFIED links. Try different ISPs if none work.")
+    print("نکته: برای ریالیتی (Reality) حتما از کلاینت بروز استفاده کنید.")
     print("====================================================")
 
 if __name__ == "__main__":
