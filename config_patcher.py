@@ -49,6 +49,9 @@ def patch_config(uri, clean_ip, force_sni=None):
         proto_uuid, old_addr, port = match.groups()
         query = dict(urllib.parse.parse_qsl(query_str))
 
+        # Identify original domain
+        original_domain = query.get('host') or query.get('sni') or (old_addr if not re.match(r'^\d', old_addr) else None)
+
         if is_ir:
             query['security'] = 'none'
             query['type'] = 'tcp'
@@ -57,8 +60,8 @@ def patch_config(uri, clean_ip, force_sni=None):
             query.pop('sni', None)
         else:
             query['security'] = 'tls'
-            query['sni'] = force_sni if force_sni else (query.get('sni') or old_addr)
-            query['host'] = force_sni if force_sni else (query.get('host') or old_addr)
+            query['sni'] = force_sni if force_sni else (original_domain or old_addr)
+            query['host'] = original_domain if original_domain else old_addr
             query['fp'] = 'chrome'
             query['alpn'] = 'h2,http/1.1'
             query['allowInsecure'] = '1' # CRITICAL for SNI spoofing
@@ -81,6 +84,9 @@ def patch_config(uri, clean_ip, force_sni=None):
         old_addr = parsed.get('add')
         parsed['add'] = clean_ip
 
+        # Identify original domain
+        original_domain = parsed.get('host') or parsed.get('sni') or (old_addr if not re.match(r'^\d', old_addr) else None)
+
         if is_ir:
             parsed['tls'] = ""
             parsed['net'] = 'tcp'
@@ -88,8 +94,8 @@ def patch_config(uri, clean_ip, force_sni=None):
             parsed['host'] = "skyroom.online,gharar.ir,igap.net"
         else:
             parsed['tls'] = "tls"
-            parsed['sni'] = force_sni if force_sni else (parsed.get('sni') or old_addr)
-            parsed['host'] = force_sni if force_sni else (parsed.get('host') or old_addr)
+            parsed['sni'] = force_sni if force_sni else (original_domain or old_addr)
+            parsed['host'] = original_domain if original_domain else (parsed.get('host') or old_addr)
             parsed['fp'] = 'chrome'
             parsed['skip-cert-verify'] = True # CRITICAL for SNI spoofing
             if parsed.get('net') == 'ws': parsed['type'] = 'none'

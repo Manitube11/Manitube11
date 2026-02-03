@@ -86,14 +86,26 @@ def main():
     clean_snis = sni_scanner.find_best_sni()
     public_configs = config_patcher.fetch_public_configs()
 
+    if not public_configs:
+        print("[!] خطای دریافت کانفیگ‌های عمومی. لطفا اتصال اینترنت خود را چک کنید.")
+        return
+
     print("\n[+] Step 1: Scanning for Clean IPs...")
+    print("    (در حال جستجوی آی‌پی‌های سالم - این مرحله ممکن است ۱-۲ دقیقه طول بکشد)")
     ranges = scanner.fetch_cf_ranges() + scanner.fetch_gcore_ranges()
-    results = scanner.scan_ips(ranges, samples_per_range=3, max_workers=60)
+
+    # Use one of the verified SNIs for scanning to ensure they are actually unblocked on these IPs
+    test_sni = clean_snis[0] if clean_snis else "www.cloudflare.com"
+    results = scanner.scan_ips(ranges, samples_per_range=3, max_workers=60, sni_to_check=test_sni)
 
     verify_and_display(results, choice, public_configs=public_configs, clean_snis=clean_snis)
 
     print("\n" + "="*50)
     print("Done! Check your client version for REALITY support.")
+    print("اگر کانفیگ‌ها کار نکردند، موارد زیر را چک کنید:")
+    print("۱. از آخرین نسخه v2rayNG (اندروید) یا V2rayN (ویندوز) استفاده کنید.")
+    print("۲. مطمئن شوید Fragment در کلاینت شما پشتیبانی می‌شود.")
+    print("۳. برخی اپراتورها ممکن است SNI های خاصی را بسته باشند.")
     print("====================================================")
 
 if __name__ == "__main__":
