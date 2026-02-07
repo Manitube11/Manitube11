@@ -1,6 +1,12 @@
 import streamlit as st
 import plotly.graph_objects as go
-from mines_analyzer.logic import MineAnalyzer, calculate_next_safe_probability, calculate_multiplier
+
+# Handle imports whether running as a module or script
+try:
+    from mines_analyzer.logic import MineAnalyzer, calculate_next_safe_probability, calculate_multiplier
+except ImportError:
+    # If running directly from the folder (e.g., via .bat)
+    from logic import MineAnalyzer, calculate_next_safe_probability, calculate_multiplier
 
 # --- Page Config ---
 st.set_page_config(page_title="Mines Analyzer AI v2", layout="wide", page_icon="💣")
