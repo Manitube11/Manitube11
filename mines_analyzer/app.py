@@ -1,194 +1,222 @@
 import streamlit as st
-import logic
+import plotly.graph_objects as go
+from mines_analyzer.logic import MineAnalyzer, calculate_next_safe_probability, calculate_multiplier
 
-# Page Configuration
-st.set_page_config(page_title="Mines Analyzer AI", layout="wide")
+# --- Page Config ---
+st.set_page_config(page_title="Mines Analyzer AI v2", layout="wide", page_icon="💣")
 
-# Initialize Session State
-if 'revealed_indices' not in st.session_state:
-    st.session_state.revealed_indices = []
-if 'history_indices' not in st.session_state:
-    st.session_state.history_indices = []
-if 'mines_count' not in st.session_state:
-    st.session_state.mines_count = 3
-if 'suggestion' not in st.session_state:
-    st.session_state.suggestion = None
-if 'mode' not in st.session_state:
-    st.session_state.mode = 'play' # 'play' or 'record_history'
-
-# Custom CSS for RTL and Dark Theme tweaks
+# --- Custom CSS for RTL & Styling ---
 st.markdown("""
 <style>
-    .stApp {
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
+
+    html, body, [class*="css"] {
+        font-family: 'Vazirmatn', 'Tahoma', sans-serif;
         direction: rtl;
         text-align: right;
-        font-family: 'Tahoma', sans-serif;
     }
     .stButton>button {
         width: 100%;
         height: 60px;
-        font-size: 20px;
-        border-radius: 10px;
-        transition: all 0.3s;
+        font-size: 24px;
+        border-radius: 12px;
+        border: 2px solid #333;
+        background-color: #262730;
+        color: white;
+        transition: all 0.2s;
     }
-    .safe-tile {
-        background-color: #2ecc71 !important;
-        color: white !important;
+    .stButton>button:hover {
+        border-color: #ff4b4b;
+        transform: scale(1.02);
     }
-    .mine-tile {
-        background-color: #e74c3c !important;
-        color: white !important;
-    }
-    .suggested-tile {
-        background-color: #f1c40f !important; # Yellow
-        color: black !important;
-        border: 2px solid white !important;
-    }
-    /* Stats Card Styling */
-    .metric-card {
+    /* Metrics */
+    div[data-testid="stMetric"] {
         background-color: #1e1e1e;
         padding: 15px;
         border-radius: 10px;
-        text-align: center;
         border: 1px solid #333;
+        text-align: center;
     }
-    .metric-value {
-        font-size: 24px;
-        font-weight: bold;
-        color: #4facfe;
-    }
-    .metric-label {
-        font-size: 14px;
+    div[data-testid="stMetricLabel"] {
+        text-align: center;
         color: #aaa;
+    }
+    div[data-testid="stMetricValue"] {
+        text-align: center;
+        color: #4facfe;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Sidebar
+# --- Session State Initialization ---
+if 'analyzer' not in st.session_state:
+    st.session_state.analyzer = MineAnalyzer()
+
+if 'revealed' not in st.session_state:
+    st.session_state.revealed = set() # Set of indices
+
+if 'current_suggestion' not in st.session_state:
+    st.session_state.current_suggestion = None
+
+if 'mode' not in st.session_state:
+    st.session_state.mode = 'play' # 'play', 'input_mines'
+
+# --- Sidebar Controls ---
 with st.sidebar:
-    st.title("⚙️ تنظیمات (Settings)")
-    st.session_state.mines_count = st.slider(
-        "تعداد بمب‌ها (Number of Mines)",
-        min_value=1, max_value=24, value=st.session_state.mines_count
+    st.header("⚙️ تنظیمات (Settings)")
+
+    mines_count = st.slider("تعداد بمب‌ها (Mines)", 1, 24, 3)
+
+    st.divider()
+
+    st.subheader("🧠 استراتژی تحلیل (Strategy)")
+    strategy = st.radio(
+        "انتخاب استراتژی:",
+        ("conservative", "balanced", "aggressive"),
+        format_func=lambda x: {
+            "conservative": "🛡️ محافظه‌کار (Conservative) - دوری از نقاط داغ",
+            "balanced": "⚖️ متعادل (Balanced) - ترکیبی",
+            "aggressive": "🔥 تهاجمی (Aggressive) - دنبال کردن الگوها"
+        }[x]
     )
 
-    if st.button("🔄 بازی جدید (Reset Game)"):
-        st.session_state.revealed_indices = []
-        st.session_state.suggestion = None
+    st.divider()
+
+    col_reset, col_clear = st.columns(2)
+    if col_reset.button("🔄 بازی جدید"):
+        st.session_state.revealed = set()
+        st.session_state.current_suggestion = None
         st.session_state.mode = 'play'
         st.rerun()
 
-    st.markdown("---")
-    st.write("### تاریخچه بمب‌ها (Mine History)")
-    st.write(f"تعداد ثبت شده: {len(st.session_state.history_indices)}")
-    if st.button("🗑️ پاک کردن تاریخچه (Clear History)"):
-        st.session_state.history_indices = []
+    if col_clear.button("🗑️ پاکسازی تاریخچه"):
+        st.session_state.analyzer = MineAnalyzer()
+        st.success("تاریخچه پاک شد!")
         st.rerun()
 
-# Main Content
-st.title("💎 Mines Analyzer AI")
+    st.info(f"📊 بازی‌های ثبت شده در حافظه: {len(st.session_state.analyzer.history)}")
 
-# Stats Section
-col1, col2, col3 = st.columns(3)
+# --- Main Interface ---
+st.title("💣 تحلیل‌گر پیشرفته ماینز (Mines Analyzer v2)")
 
-# Calculate Stats
-revealed_count = len(st.session_state.revealed_indices)
-prob_next = logic.calculate_next_safe_probability(revealed_count, st.session_state.mines_count)
-multiplier = logic.calculate_multiplier(revealed_count, st.session_state.mines_count)
+# Stats Row
+c1, c2, c3 = st.columns(3)
+revealed_count = len(st.session_state.revealed)
+prob = calculate_next_safe_probability(revealed_count, mines_count)
+mult = calculate_multiplier(revealed_count, mines_count)
 
-with col3:
-    st.markdown(f"""
-    <div class="metric-card">
-        <div class="metric-label">تعداد خانه‌های باز شده</div>
-        <div class="metric-value">{revealed_count}</div>
-    </div>
-    """, unsafe_allow_html=True)
+c1.metric("ضریب (Multiplier)", f"{mult}x")
+c2.metric("شانس امن بودن (Safe Probability)", f"{prob:.1f}%")
+c3.metric("خانه‌های باز شده", revealed_count)
 
-with col2:
-    st.markdown(f"""
-    <div class="metric-card">
-        <div class="metric-label">احتمال امن بودن بعدی</div>
-        <div class="metric-value">{prob_next:.2f}%</div>
-    </div>
-    """, unsafe_allow_html=True)
+st.divider()
 
-with col1:
-    st.markdown(f"""
-    <div class="metric-card">
-        <div class="metric-label">ضریب تئوری (Multiplier)</div>
-        <div class="metric-value">{multiplier}x</div>
-    </div>
-    """, unsafe_allow_html=True)
+# --- Analysis & Visualization (Heatmap) ---
+# We calculate the heatmap regardless of mode to show the user "Data"
+heatmap_data = st.session_state.analyzer.calculate_heatmap()
+grid_vals = [[heatmap_data.get(r*5 + c, 0) for c in range(5)] for r in range(5)]
 
-st.markdown("---")
+# Create Plotly Heatmap
+fig = go.Figure(data=go.Heatmap(
+    z=grid_vals,
+    x=[f"Col {i+1}" for i in range(5)],
+    y=[f"Row {i+1}" for i in range(5)],
+    colorscale='RdYlGn_r', # Red to Green (Reversed: Low freq = Green/Safe, High freq = Red/Danger)?
+                           # Actually: Heatmap tracks MINE frequency. So High Value = More Mines = Red.
+                           # Low Value = Fewer Mines = Green.
+                           # RdYlGn (Red-Yellow-Green) -> High is Green. We want High (Mines) to be Red.
+                           # So 'RdYlGn_r' (Reversed) -> High=Red, Low=Green. Correct.
+    showscale=True,
+    text=[[f"{val:.2f}" for val in row] for row in grid_vals],
+    texttemplate="%{text}",
+    hoverinfo='z'
+))
+fig.update_layout(
+    title="نقشه حرارتی خطر (Risk Heatmap)",
+    xaxis_side="top",
+    height=400,
+    margin=dict(l=20, r=20, t=40, b=20)
+)
 
-# Grid Logic
-def handle_click(index):
+# Layout: Left for Grid (Interaction), Right for Heatmap (Analysis)
+col_grid, col_viz = st.columns([1, 1])
+
+with col_viz:
+    st.plotly_chart(fig, use_container_width=True)
+    st.caption("🟥 قرمز = خطر بالا (محل تکرار بمب) | 🟩 سبز = امن‌تر (کمتر دیده شده)")
+
+    # Suggestion Button
+    if st.button("✨ دریافت پیشنهاد هوشمند (AI Suggestion)", type="primary"):
+        sugg = st.session_state.analyzer.suggest_tile(
+            list(st.session_state.revealed),
+            strategy=strategy
+        )
+        st.session_state.current_suggestion = sugg
+        if sugg is None:
+            st.warning("همه خانه‌ها باز شده‌اند یا داده‌ای برای تحلیل نیست.")
+
     if st.session_state.mode == 'play':
-        if index not in st.session_state.revealed_indices:
-            st.session_state.revealed_indices.append(index)
-            # Reset suggestion if user picked it (or picked something else)
-            st.session_state.suggestion = None
-    elif st.session_state.mode == 'record_history':
-        # Toggle mine in history
-        st.session_state.history_indices.append(index)
+        if st.button("📝 ثبت باخت (مکان بمب‌ها را وارد کنید)"):
+            st.session_state.mode = 'input_mines'
+            st.rerun()
 
-# Suggestion Logic
-if st.button("✨ پیشنهاد حرکت (AI Suggestion)", type="primary"):
-    suggestion = logic.suggest_tile(
-        st.session_state.revealed_indices,
-        st.session_state.history_indices,
-        strategy="avoid_recent" # Default to avoiding recent mines
-    )
-    st.session_state.suggestion = suggestion
+with col_grid:
+    st.subheader("صفحه بازی (Game Grid)")
 
-# Mode Toggle
-if st.session_state.mode == 'play':
-    if st.button("📝 ثبت موقعیت بمب‌ها (بعد از باخت)", help="Record where mines were located"):
-        st.session_state.mode = 'record_history'
-        st.rerun()
-else:
-    st.info("⚠️ در حال ثبت موقعیت بمب‌ها. روی خانه‌هایی که بمب بودند کلیک کنید.")
-    if st.button("✅ پایان ثبت (بازگشت به بازی)"):
-        st.session_state.mode = 'play'
-        st.session_state.revealed_indices = [] # Reset for new game
-        st.session_state.suggestion = None
-        st.rerun()
+    # Input Mode Handling
+    if st.session_state.mode == 'input_mines':
+        st.warning("💣 لطفا روی خانه‌هایی که **بمب** بودند کلیک کنید، سپس 'ثبت' را بزنید.")
 
-# Render Grid
-# We use a 5x5 grid of columns
-grid_container = st.container()
+        # Temporary state for inputting mines
+        if 'input_mines_indices' not in st.session_state:
+            st.session_state.input_mines_indices = set()
 
-with grid_container:
-    for row in range(5):
-        cols = st.columns(5)
-        for col in range(5):
-            index = row * 5 + col
+        # Grid for Input
+        for r in range(5):
+            cols = st.columns(5)
+            for c in range(5):
+                idx = r*5 + c
+                is_selected = idx in st.session_state.input_mines_indices
+                label = "💣" if is_selected else " "
 
-            # Determine button style/label based on state
-            label = "💎"
-            disabled = False
-            is_revealed = index in st.session_state.revealed_indices
-            is_suggested = (index == st.session_state.suggestion)
-            is_history = (index in st.session_state.history_indices and st.session_state.mode == 'record_history') # Just visual indicator? No, history accumulates.
+                if cols[c].button(label, key=f"input_{idx}"):
+                    if idx in st.session_state.input_mines_indices:
+                        st.session_state.input_mines_indices.remove(idx)
+                    else:
+                        st.session_state.input_mines_indices.add(idx)
+                    st.rerun()
 
-            # Visual Logic
-            if st.session_state.mode == 'play':
+        if st.button("✅ ثبت نهایی و ذخیره در هوش مصنوعی"):
+            st.session_state.analyzer.add_game(list(st.session_state.input_mines_indices))
+            st.session_state.input_mines_indices = set() # Reset
+            st.session_state.mode = 'play'
+            st.session_state.revealed = set() # New game starts
+            st.session_state.current_suggestion = None
+            st.success("اطلاعات ذخیره شد! تحلیل‌گر هوشمندتر شد.")
+            st.rerun()
+
+    else:
+        # Play Mode Grid
+        for r in range(5):
+            cols = st.columns(5)
+            for c in range(5):
+                idx = r*5 + c
+
+                # Visual State
+                is_revealed = idx in st.session_state.revealed
+                is_suggested = (idx == st.session_state.current_suggestion)
+
+                label = "❓"
                 if is_revealed:
-                    label = "💎" # Revealed safe
-                    disabled = True
+                    label = "💎"
                 elif is_suggested:
-                    label = "❓" # Suggestion
-                else:
-                    label = " " # Unrevealed
-            else: # Record Mode
-                # Show mines history temporarily as "💣" for this session input?
-                # Actually, let's just show what we are adding.
-                # Since history accumulates, we might want to just show the ones added *now*?
-                # For simplicity, clicking adds to history.
-                label = "💣"
+                    label = "✨"
 
-            # Create button
-            # We use a unique key for each button
-            if cols[col].button(label, key=f"btn_{index}", disabled=disabled and st.session_state.mode == 'play', on_click=handle_click, args=(index,)):
-                pass
+                # Button Logic
+                # If revealed, disable
+                if cols[c].button(label, key=f"play_{idx}", disabled=is_revealed, help=f"Tile {idx}"):
+                    st.session_state.revealed.add(idx)
+                    # If we clicked the suggestion, clear it
+                    if is_suggested:
+                        st.session_state.current_suggestion = None
+                    st.rerun()
