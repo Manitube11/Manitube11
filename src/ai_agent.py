@@ -1,4 +1,4 @@
-import google.generativeai as genai
+from google import genai
 import os
 try:
     from src import config
@@ -10,51 +10,22 @@ class AIAgent:
         self.enabled = False
         if config.GEMINI_API_KEY and config.GEMINI_API_KEY != "YOUR_GEMINI_API_KEY_HERE":
             try:
-                genai.configure(api_key=config.GEMINI_API_KEY)
-                self.model = self._get_model()
+                # Initialize client
+                self.client = genai.Client(api_key=config.GEMINI_API_KEY)
                 self.enabled = True
             except Exception as e:
                 print(f"Error configuring Gemini: {e}")
         else:
             print("Warning: GEMINI_API_KEY not set. AI analysis disabled.")
 
-    def _get_model(self):
-        """
-        Attempts to find a valid model, starting with gemini-2.0-flash.
-        """
-        models_to_try = [
-            'gemini-2.0-flash',
-            'gemini-2.0-flash-lite',
-            'gemini-1.5-flash',
-            'gemini-pro'
-        ]
-
-        # We can't easily check availability without trying to list models or generate
-        # But for now, we'll return the first one and rely on runtime errors or implement a check.
-        # Actually, listing models requires API call.
-        try:
-            available_models = [m.name for m in genai.list_models()]
-            # This returns 'models/gemini-pro' etc.
-            # We need to map our preferences to available ones.
-            for preferred in models_to_try:
-                for available in available_models:
-                    if preferred in available:
-                        print(f"Using AI Model: {available}")
-                        return genai.GenerativeModel(available)
-        except Exception as e:
-            print(f"Error listing models: {e}. Defaulting to gemini-1.5-flash")
-
-        return genai.GenerativeModel('gemini-1.5-flash')
-
     def get_analysis(self, symbol, price, indicators, signal):
         """
-        Generates a short analysis using Gemini.
+        Generates a short analysis using Gemini via the new google-genai SDK.
         """
         if not self.enabled:
             return "AI Analysis Unavailable (API Key missing)."
 
         # Format prompt
-        # Ensure indicators are strings or formatted numbers
         rsi = indicators.get('RSI', 'N/A')
         if isinstance(rsi, (int, float)): rsi = f"{rsi:.2f}"
 
@@ -95,11 +66,25 @@ class AIAgent:
         )
 
         try:
-            response = self.model.generate_content(prompt)
+            # Using new client syntax
+            # Prioritize 'gemini-2.0-flash'
+            response = self.client.models.generate_content(
+                model='gemini-2.0-flash',
+                contents=prompt
+            )
             return response.text
         except Exception as e:
-            print(f"Error generating AI analysis: {e}")
-            return "AI Analysis failed due to an error."
+            # Fallback attempts if the model name is wrong or deprecated
+            try:
+                print(f"Primary model failed ({e}), trying gemini-1.5-flash...")
+                response = self.client.models.generate_content(
+                    model='gemini-1.5-flash',
+                    contents=prompt
+                )
+                return response.text
+            except Exception as e2:
+                print(f"Error generating AI analysis: {e2}")
+                return "AI Analysis failed due to an error."
 
 # Singleton instance
 agent = AIAgent()
