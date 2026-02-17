@@ -1,32 +1,102 @@
+# Telegram Bot & Mini App Project
 
-<h1 align="center">Hi 👋, I'm ManiTube</h1>
-<h3 align="center">I am AI developer engineer from Iran</h3>
+This project contains a **Telegram Bot** (backend) and a **Mini App** (frontend) built with modern technologies.
 
-<img align="right" alt="Manitube11" width = "400" src="https://themarketingbirds.com/wp-content/uploads/2019/09/BaggyRealBeetle-max-1mb.gif">
+- **Bot:** Node.js, Telegraf
+- **Mini App:** React, Vite, TypeScript, Tailwind CSS
 
-<p align="left"> <img src="https://komarev.com/ghpvc/?username=manitube11&label=Profile%20views&color=0e75b6&style=flat" alt="manitube11" /> </p>
+## New Features (Professional UI Upgrade)
 
-- 🌱 I’m currently learning **I am myself.**
+- **Sleek Dark Theme:** Modern, professional look suitable for financial/business apps.
+- **Multi-Tab Navigation:**
+  - **Home:** Quick actions and announcements.
+  - **Store:** Premium product showcase with pricing tiers.
+  - **Wallet:** Simulated balance tracking and transaction history.
+- **Animations:** Smooth transitions using CSS animations.
 
-- 👨‍💻 All of my projects are available at [https://github.com/Manitube11](https://github.com/Manitube11)
+## Prerequisites
 
-- 💬 Ask me about **everything**
+- [Node.js](https://nodejs.org/) (v16 or higher)
+- A Telegram Bot Token (from [@BotFather](https://t.me/BotFather))
+- A tunneling tool like [ngrok](https://ngrok.com/) (required to expose your local server to Telegram)
 
-- 📫 How to reach me **mani.jamal777@gmail.com**
+## Project Structure
 
-- ⚡ Fun fact **Artificial intelligence has taken over!**
+- `/bot`: Contains the backend logic for the Telegram bot.
+- `/web-app`: Contains the frontend React application for the Mini App.
 
-<h3 align="left">Connect with me:</h3>
-<p align="left">
-<a href="https://instagram.com/manituber11" target="blank"><img align="center" src="https://raw.githubusercontent.com/rahuldkjain/github-profile-readme-generator/master/src/images/icons/Social/instagram.svg" alt="manituber11" height="30" width="40" /></a>
-<a href="https://discord.gg/manitube" target="blank"><img align="center" src="https://raw.githubusercontent.com/rahuldkjain/github-profile-readme-generator/master/src/images/icons/Social/discord.svg" alt="manitube" height="30" width="40" /></a>
-</p>
+## Setup Instructions
 
-<h3 align="left">Languages and Tools:</h3>
-<p align="left"> <a href="https://www.w3schools.com/cs/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/csharp/csharp-original.svg" alt="csharp" width="40" height="40"/> </a> <a href="https://www.w3schools.com/css/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/css3/css3-original-wordmark.svg" alt="css3" width="40" height="40"/> </a> <a href="https://www.docker.com/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/docker/docker-original-wordmark.svg" alt="docker" width="40" height="40"/> </a> <a href="https://www.figma.com/" target="_blank" rel="noreferrer"> <img src="https://www.vectorlogo.zone/logos/figma/figma-icon.svg" alt="figma" width="40" height="40"/> </a> <a href="https://firebase.google.com/" target="_blank" rel="noreferrer"> <img src="https://www.vectorlogo.zone/logos/firebase/firebase-icon.svg" alt="firebase" width="40" height="40"/> </a> <a href="https://www.w3.org/html/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/html5/html5-original-wordmark.svg" alt="html5" width="40" height="40"/> </a> <a href="https://www.adobe.com/in/products/illustrator.html" target="_blank" rel="noreferrer"> <img src="https://www.vectorlogo.zone/logos/adobe_illustrator/adobe_illustrator-icon.svg" alt="illustrator" width="40" height="40"/> </a> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/javascript/javascript-original.svg" alt="javascript" width="40" height="40"/> </a> <a href="https://www.mongodb.com/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/mongodb/mongodb-original-wordmark.svg" alt="mongodb" width="40" height="40"/> </a> <a href="https://www.nginx.com" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/nginx/nginx-original.svg" alt="nginx" width="40" height="40"/> </a> <a href="https://nodejs.org" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/nodejs/nodejs-original-wordmark.svg" alt="nodejs" width="40" height="40"/> </a> <a href="https://www.php.net" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/php/php-original.svg" alt="php" width="40" height="40"/> </a> <a href="https://www.python.org" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/python/python-original.svg" alt="python" width="40" height="40"/> </a> </p>
+### 1. Setup the Bot
 
-<p><img align="left" src="https://github-readme-stats.vercel.app/api/top-langs?username=manitube11&show_icons=true&locale=en&layout=compact" alt="manitube11" /></p>
+1.  Navigate to the `bot` directory:
+    ```bash
+    cd bot
+    ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+3.  Copy the example environment file:
+    ```bash
+    cp .env.example .env
+    ```
+4.  Open `.env` and paste your bot token (from BotFather) into `BOT_TOKEN`:
+    ```env
+    BOT_TOKEN=YOUR_BOT_TOKEN_HERE
+    WEB_APP_URL=YOUR_NGROK_URL
+    ```
+    **Important:** You will need to update `WEB_APP_URL` after you start ngrok (see Step 3).
 
-<p>&nbsp;<img align="center" src="https://github-readme-stats.vercel.app/api?username=manitube11&show_icons=true&locale=en" alt="manitube11" /></p>
+### 2. Setup the Mini App
 
-<p><img align="center" src="https://github-readme-streak-stats.herokuapp.com/?user=manitube11&" alt="manitube11" /></p>
+1.  Open a new terminal and navigate to the `web-app` directory:
+    ```bash
+    cd web-app
+    ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+3.  Start the development server:
+    ```bash
+    npm run dev
+    ```
+    This will usually start the app at `http://localhost:5173`.
+
+### 3. Expose Localhost with Ngrok
+
+Since Telegram Mini Apps require HTTPS, you need to expose your local `http://localhost:5173` to the internet.
+
+**Note:** If you don't have a website or domain, don't worry! This step will give you a temporary, secure internet address for free.
+
+1.  Install ngrok if you haven't already.
+2.  Run the following command:
+    ```bash
+    ngrok http 5173
+    ```
+3.  Copy the HTTPS URL provided by ngrok (e.g., `https://abcd-1234.ngrok-free.app`).
+4.  Paste this URL into `bot/.env` as the `WEB_APP_URL`:
+    ```env
+    WEB_APP_URL=https://abcd-1234.ngrok-free.app
+    ```
+
+### 4. Run the Bot
+
+1.  Go back to the `bot` terminal.
+2.  Start the bot:
+    ```bash
+    node index.js
+    ```
+3.  Open your bot in Telegram and send `/start`.
+4.  Click the "Launch App" button. It should open your local Mini App!
+
+## Customization
+
+- **Frontend:** Edit `web-app/src/App.tsx` to change the UI. Tailwind CSS is configured for easy styling.
+- **Backend:** Edit `bot/index.js` to add more bot commands or logic.
+
+## Troubleshooting
+
+- **White Screen in Telegram:** Ensure the `WEB_APP_URL` in `.env` is the correct HTTPS URL from ngrok.
+- **Bot not responding:** Ensure the bot process is running (`node index.js`) and the token is correct.
