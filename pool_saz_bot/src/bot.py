@@ -166,10 +166,20 @@ def main():
     # Initialize ApplicationBuilder
     builder = ApplicationBuilder().token(TELEGRAM_TOKEN)
 
+    # Configure request with longer timeouts and optional proxy
+    request_kwargs = {
+        'connect_timeout': 30.0,
+        'read_timeout': 30.0,
+        'write_timeout': 30.0,
+        'pool_timeout': 30.0,
+    }
+
     if PROXY_URL:
-        request = HTTPXRequest(proxy_url=PROXY_URL)
-        builder.request(request)
-        builder.get_updates_request(request)
+        request_kwargs['proxy_url'] = PROXY_URL
+
+    request = HTTPXRequest(**request_kwargs)
+    builder.request(request)
+    builder.get_updates_request(request)
 
     app = builder.build()
 
