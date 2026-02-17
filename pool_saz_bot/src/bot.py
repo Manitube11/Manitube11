@@ -1,6 +1,7 @@
 import logging
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters, ConversationHandler
+from telegram.request import HTTPXRequest
 from .config import TELEGRAM_TOKEN, PROXY_URL
 from .keyboards import get_main_menu, get_feedback_menu, get_cancel_menu
 from .ai_agent import AIAgent
@@ -166,8 +167,9 @@ def main():
     builder = ApplicationBuilder().token(TELEGRAM_TOKEN)
 
     if PROXY_URL:
-        builder.proxy_url(PROXY_URL)
-        builder.get_updates_proxy_url(PROXY_URL)
+        request = HTTPXRequest(proxy_url=PROXY_URL)
+        builder.request(request)
+        builder.get_updates_request(request)
 
     app = builder.build()
 
