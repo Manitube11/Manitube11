@@ -59,6 +59,8 @@ This project contains a **Telegram Bot** (backend) and a **Mini App** (frontend)
 
 Since Telegram Mini Apps require HTTPS, you need to expose your local `http://localhost:5173` to the internet.
 
+**Note:** If you don't have a website or domain, don't worry! This step will give you a temporary, secure internet address for free.
+
 1.  Install ngrok if you haven't already.
 2.  Run the following command:
     ```bash
