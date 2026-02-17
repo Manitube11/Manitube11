@@ -5,6 +5,15 @@ This project contains a **Telegram Bot** (backend) and a **Mini App** (frontend)
 - **Bot:** Node.js, Telegraf
 - **Mini App:** React, Vite, TypeScript, Tailwind CSS
 
+## New Features (Professional UI Upgrade)
+
+- **Sleek Dark Theme:** Modern, professional look suitable for financial/business apps.
+- **Multi-Tab Navigation:**
+  - **Home:** Quick actions and announcements.
+  - **Store:** Premium product showcase with pricing tiers.
+  - **Wallet:** Simulated balance tracking and transaction history.
+- **Animations:** Smooth transitions using CSS animations.
+
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) (v16 or higher)
