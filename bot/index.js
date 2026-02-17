@@ -1,13 +1,37 @@
-require('dotenv').config();
-const { Telegraf, Markup } = require('telegraf');
+try {
+  require('dotenv').config();
+} catch (e) {
+  if (e.code === 'MODULE_NOT_FOUND') {
+    console.error('\x1b[31m%s\x1b[0m', 'Error: "dotenv" module not found.');
+    console.error('Please run "npm install" in this directory to install dependencies.');
+    process.exit(1);
+  } else {
+    throw e;
+  }
+}
+
+let Telegraf, Markup;
+try {
+  const telegraf = require('telegraf');
+  Telegraf = telegraf.Telegraf;
+  Markup = telegraf.Markup;
+} catch (e) {
+  if (e.code === 'MODULE_NOT_FOUND') {
+    console.error('\x1b[31m%s\x1b[0m', 'Error: "telegraf" module not found.');
+    console.error('Please run "npm install" in this directory to install dependencies.');
+    process.exit(1);
+  } else {
+    throw e;
+  }
+}
 
 const token = process.env.BOT_TOKEN;
 if (!token) {
-  console.error('Error: BOT_TOKEN is missing in .env file.');
+  console.error('\x1b[31m%s\x1b[0m', 'Error: BOT_TOKEN is missing in .env file.');
   console.error('Please create a .env file in the "bot" directory with BOT_TOKEN=your_token_here');
   // We can't proceed without a token, but let's try to not crash immediately if we want to be nice?
   // No, Telegraf needs it.
-  throw new Error('BOT_TOKEN must be provided!');
+  process.exit(1);
 }
 
 const bot = new Telegraf(token);
