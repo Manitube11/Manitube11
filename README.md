@@ -1,32 +1,57 @@
+# Telegram Seen Detector Userbot
 
-<h1 align="center">Hi 👋, I'm ManiTube</h1>
-<h3 align="center">I am AI developer engineer from Iran</h3>
+This is a Telegram Userbot (using Pyrogram) that allows you to send messages to users and get notified when they see (read) them. It also forwards any replies back to you.
 
-<img align="right" alt="Manitube11" width = "400" src="https://themarketingbirds.com/wp-content/uploads/2019/09/BaggyRealBeetle-max-1mb.gif">
+## Features
+- Send messages to any user by ID or Username.
+- Get a notification when the message is "Seen".
+- Forward replies from the target user.
 
-<p align="left"> <img src="https://komarev.com/ghpvc/?username=manitube11&label=Profile%20views&color=0e75b6&style=flat" alt="manitube11" /> </p>
+## Setup Instructions
 
-- 🌱 I’m currently learning **I am myself.**
+1. **Get API Keys:**
+   - Go to [my.telegram.org](https://my.telegram.org) and log in.
+   - Click on "API development tools".
+   - Create a new application (you can use any name).
+   - Copy your `API_ID` and `API_HASH`.
 
-- 👨‍💻 All of my projects are available at [https://github.com/Manitube11](https://github.com/Manitube11)
+2. **Install Dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-- 💬 Ask me about **everything**
+3. **Configure the Bot:**
+   - Open `config.py`.
+   - Replace `API_ID` and `API_HASH` with your values.
+   - You can leave `OWNER_ID = "me"` to receive notifications on your own account.
 
-- 📫 How to reach me **mani.jamal777@gmail.com**
+4. **Run the Bot:**
+   ```bash
+   python bot.py
+   ```
+   - On the first run, it will ask for your phone number and the login code sent to your Telegram.
 
-- ⚡ Fun fact **Artificial intelligence has taken over!**
+## How to Use
 
-<h3 align="left">Connect with me:</h3>
-<p align="left">
-<a href="https://instagram.com/manituber11" target="blank"><img align="center" src="https://raw.githubusercontent.com/rahuldkjain/github-profile-readme-generator/master/src/images/icons/Social/instagram.svg" alt="manituber11" height="30" width="40" /></a>
-<a href="https://discord.gg/manitube" target="blank"><img align="center" src="https://raw.githubusercontent.com/rahuldkjain/github-profile-readme-generator/master/src/images/icons/Social/discord.svg" alt="manitube" height="30" width="40" /></a>
-</p>
+- **Start the bot:** Send `.start` in any chat (only you can trigger it).
+- **Send a message:** Use the command `.msg @username Your message here`.
+- **Seen Status:** When the user reads your message, the bot will send you a notification: `👁‍🗨 Message ... has been seen!`.
+- **Replies:** Any message the user sends back will be forwarded to you.
 
-<h3 align="left">Languages and Tools:</h3>
-<p align="left"> <a href="https://www.w3schools.com/cs/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/csharp/csharp-original.svg" alt="csharp" width="40" height="40"/> </a> <a href="https://www.w3schools.com/css/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/css3/css3-original-wordmark.svg" alt="css3" width="40" height="40"/> </a> <a href="https://www.docker.com/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/docker/docker-original-wordmark.svg" alt="docker" width="40" height="40"/> </a> <a href="https://www.figma.com/" target="_blank" rel="noreferrer"> <img src="https://www.vectorlogo.zone/logos/figma/figma-icon.svg" alt="figma" width="40" height="40"/> </a> <a href="https://firebase.google.com/" target="_blank" rel="noreferrer"> <img src="https://www.vectorlogo.zone/logos/firebase/firebase-icon.svg" alt="firebase" width="40" height="40"/> </a> <a href="https://www.w3.org/html/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/html5/html5-original-wordmark.svg" alt="html5" width="40" height="40"/> </a> <a href="https://www.adobe.com/in/products/illustrator.html" target="_blank" rel="noreferrer"> <img src="https://www.vectorlogo.zone/logos/adobe_illustrator/adobe_illustrator-icon.svg" alt="illustrator" width="40" height="40"/> </a> <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/javascript/javascript-original.svg" alt="javascript" width="40" height="40"/> </a> <a href="https://www.mongodb.com/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/mongodb/mongodb-original-wordmark.svg" alt="mongodb" width="40" height="40"/> </a> <a href="https://www.nginx.com" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/nginx/nginx-original.svg" alt="nginx" width="40" height="40"/> </a> <a href="https://nodejs.org" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/nodejs/nodejs-original-wordmark.svg" alt="nodejs" width="40" height="40"/> </a> <a href="https://www.php.net" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/php/php-original.svg" alt="php" width="40" height="40"/> </a> <a href="https://www.python.org" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/python/python-original.svg" alt="python" width="40" height="40"/> </a> </p>
+---
 
-<p><img align="left" src="https://github-readme-stats.vercel.app/api/top-langs?username=manitube11&show_icons=true&locale=en&layout=compact" alt="manitube11" /></p>
+## راهنمای فارسی
 
-<p>&nbsp;<img align="center" src="https://github-readme-stats.vercel.app/api?username=manitube11&show_icons=true&locale=en" alt="manitube11" /></p>
+این یک یوزربات تلگرام است که به شما اجازه می‌دهد به بقیه پیام دهید و متوجه شوید چه زمانی پیام شما را دیده‌اند.
 
-<p><img align="center" src="https://github-readme-streak-stats.herokuapp.com/?user=manitube11&" alt="manitube11" /></p>
+### مراحل راه‌اندازی:
+1. دریافت **API_ID** و **API_HASH** از سایت [my.telegram.org](https://my.telegram.org).
+2. نصب کتابخانه‌های مورد نیاز: `pip install -r requirements.txt`.
+3. تنظیم فایل `config.py` با اطلاعات خودتان.
+4. اجرای ربات: `python bot.py`.
+
+### نحوه استفاده:
+- برای ارسال پیام از دستور زیر استفاده کنید:
+  `.msg @username متن پیام شما`
+- هر زمان طرف مقابل پیام را بخواند، ربات به شما اطلاع می‌دهد.
+- جواب‌های طرف مقابل هم برای شما فرستاده می‌شود.
