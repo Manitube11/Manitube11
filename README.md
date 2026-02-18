@@ -30,7 +30,9 @@ This is a Telegram Userbot (using Pyrogram) that allows you to send messages to 
    ```bash
    python bot.py
    ```
-   - On the first run, it will ask for your phone number and the login code sent to your Telegram.
+   - **IMPORTANT:** When prompted `Enter phone number or bot token`, enter your **Personal Phone Number** (e.g., `+989123456789`).
+   - **DO NOT** enter a Bot Token from BotFather, as it will not support seen detection.
+   - Follow the instructions to enter the login code sent to your Telegram app.
 
 ## How to Use
 
@@ -46,11 +48,14 @@ This is a Telegram Userbot (using Pyrogram) that allows you to send messages to 
 این یک یوزربات تلگرام است که به شما اجازه می‌دهد به بقیه پیام دهید و متوجه شوید چه زمانی پیام شما را دیده‌اند.
 
 ### مراحل راه‌اندازی:
-1. دریافت **API_ID** و **API_HASH** از سایت [my.telegram.org](https://my.telegram.org).
-2. نصب کتابخانه‌های مورد نیاز: `pip install -r requirements.txt`.
-3. تنظیم فایل `config.py` با اطلاعات خودتان.
+۱. دریافت **API_ID** و **API_HASH** از سایت [my.telegram.org](https://my.telegram.org).
+۲. نصب کتابخانه‌های مورد نیاز: `pip install -r requirements.txt`.
+۳. تنظیم فایل `config.py` با اطلاعات خودتان.
    - **پروکسی:** اگر تلگرام برای شما فیلتر است، تنظیمات پروکسی را در `config.py` وارد کنید.
-4. اجرای ربات: `python bot.py`.
+۴. اجرای ربات: `python bot.py`.
+
+**نکته بسیار مهم:**
+وقتی برنامه از شما می‌خواهد که `Enter phone number or bot token` را وارد کنید، حتماً **شماره موبایل خودتان** را (مثلاً `+989123456789`) وارد کنید. از توکن ربات استفاده نکنید چون قابلیت تشخیص سین زدن را ندارد.
 
 ### نحوه استفاده:
 - برای ارسال پیام از دستور زیر استفاده کنید:

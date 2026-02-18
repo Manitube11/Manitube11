@@ -1,4 +1,9 @@
-# Get these from https://my.telegram.org
+# --- IMPORTANT ---
+# This is a USERBOT. It works with your PERSONAL account.
+# When the program starts, enter your PHONE NUMBER (e.g., +98912...), NOT a bot token.
+# -----------------
+
+# Get these from https://my.telegram.org (App ID and App Hash)
 API_ID = 1234567
 API_HASH = "your_api_hash_here"
 
