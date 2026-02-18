@@ -1,7 +1,7 @@
 import json
 import os
 import logging
-from pyrogram import Client, filters, enums
+from pyrogram import Client, filters, enums, idle
 from pyrogram.raw.types import UpdateReadHistoryOutbox, PeerUser, PeerChat, PeerChannel
 import config
 
@@ -161,7 +161,7 @@ async def main():
         print(f"Logged in as: {me.first_name} (@{me.username or 'NoUsername'})")
         print("Everything is ready! Use .msg @username to send a message.")
 
-    await app.idle()
+    await idle()
 
 if __name__ == "__main__":
     import asyncio
