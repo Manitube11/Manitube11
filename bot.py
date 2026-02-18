@@ -167,17 +167,37 @@ async def raw_handler(client, update, users, chats):
         pass
 
 @app.on_message(filters.private & ~is_owner)
-async def reply_handler(client, message):
+async def unauthorized_or_reply_handler(client, message):
     try:
+        me = await client.get_me()
         chat_id = message.chat.id
+
+        # If it's a reply from someone we messaged
         if chat_id in active_chats:
-            await client.send_message(
-                config.OWNER_ID,
-                f"📩 **New reply from {message.from_user.mention if message.from_user else 'Unknown'}** (`{chat_id}`):"
+            if config.OWNER_ID != "me":
+                await client.send_message(
+                    config.OWNER_ID,
+                    f"📩 **New reply from {message.from_user.mention if message.from_user else 'Unknown'}** (`{chat_id}`):"
+                )
+                await message.copy(config.OWNER_ID)
+            return
+
+        # If someone is trying to use the bot but isn't the owner
+        if me.is_bot:
+            user_id = message.from_user.id if message.from_user else "Unknown"
+            text = (
+                f"❌ You are not authorized to use this bot.\n\n"
+                f"Your ID: `{user_id}`\n\n"
+                f"To use the bot, you must put this ID in `config.py` like this:\n"
+                f"`OWNER_ID = {user_id}`\n\n"
+                f"--- راهنما ---\n"
+                f"شما اجازه دسترسی به این ربات را ندارید.\n"
+                f"آیدی شما: `{user_id}`\n"
+                f"این آیدی را در فایل `config.py` مقابل عبارت `OWNER_ID` قرار دهید و ربات را دوباره اجرا کنید."
             )
-            await message.copy(config.OWNER_ID)
+            await message.reply_text(text)
     except Exception as e:
-        print(f"Error in reply handler: {e}")
+        print(f"Error in handler: {e}")
 
 async def main():
     # Basic validation

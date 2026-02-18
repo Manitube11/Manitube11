@@ -19,8 +19,10 @@ API_HASH = "your_api_hash_here"
 # Otherwise, the bot won't know you are the owner and won't listen to your commands!
 # Example: OWNER_ID = 12345678
 #
-# اگر از بات توکن استفاده می‌کنید، حتما آیدی عددی خود را اینجا وارد کنید
-# وگرنه ربات دستورات شما را اجرا نمی‌کند
+# اگر از بات توکن (توکنی که از بات‌فادر گرفتید) استفاده می‌کنید:
+# حتما باید آیدی عددی خودتان را پایین به جای "me" بنویسید
+# برای پیدا کردن آیدی، ربات را اجرا کنید و به آن پیام بدهید، ربات آیدی را به شما می‌گوید
+# IMPORTANT: Put your numeric ID here! Example: OWNER_ID = 12345678
 OWNER_ID = "me"
 
 # Proxy settings (Optional - Highly recommended if you are in Iran)
