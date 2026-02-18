@@ -46,6 +46,7 @@ This is a Telegram Userbot (using Pyrogram) that allows you to send messages to 
 - **Send a message:** Use the command `.msg @username Your message here`.
 - **Seen Status:** When the user reads your message, the bot will notify the `OWNER_ID`.
 - **Replies:** Any message the user sends back will be forwarded to the `OWNER_ID`.
+- **Ghost Reading**: The bot does **not** mark incoming replies as "Seen". You can read the forwarded messages without the sender knowing you have seen them.
 
 ---
 
@@ -67,3 +68,4 @@ This is a Telegram Userbot (using Pyrogram) that allows you to send messages to 
 - ارسال پیام: `.msg @username متن پیام`
 - وقتی پیام خونده بشه، ربات بهت خبر میده.
 - جواب‌های طرف هم برات فوروارد میشه.
+- **حالت روح (Ghost Mode):** ربات پیام‌های دریافتی را برای طرف مقابل "سین" نمی‌کند. بنابراین شما می‌توانید جواب‌ها را بخوانید بدون اینکه طرف مقابل متوجه شود.
