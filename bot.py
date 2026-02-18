@@ -1,32 +1,41 @@
 import json
 import os
+import logging
 from pyrogram import Client, filters, enums
-from pyrogram.raw.types import UpdateReadHistoryOutbox
+from pyrogram.raw.types import UpdateReadHistoryOutbox, PeerUser, PeerChat, PeerChannel
 import config
+
+# Setup logging to see errors without crashing
+logging.basicConfig(level=logging.ERROR)
 
 STATE_FILE = "state.json"
 
 def load_state():
     if os.path.exists(STATE_FILE):
-        with open(STATE_FILE, "r") as f:
-            data = json.load(f)
-            # Convert keys back to (chat_id, msg_id) tuples
-            sent = {}
-            for k, v in data.get("sent_messages", {}).items():
-                chat_id, msg_id = map(int, k.split(":"))
-                sent[(chat_id, msg_id)] = v
-            return sent, set(data.get("active_chats", []))
+        try:
+            with open(STATE_FILE, "r") as f:
+                data = json.load(f)
+                sent = {}
+                for k, v in data.get("sent_messages", {}).items():
+                    try:
+                        chat_id, msg_id = map(int, k.split(":"))
+                        sent[(chat_id, msg_id)] = v
+                    except: continue
+                return sent, set(data.get("active_chats", []))
+        except: pass
     return {}, set()
 
 def save_state(sent_messages, active_chats):
-    # Convert tuple keys to string "chat_id:msg_id" for JSON
-    sent = {f"{k[0]}:{k[1]}": v for k, v in sent_messages.items()}
-    data = {
-        "sent_messages": sent,
-        "active_chats": list(active_chats)
-    }
-    with open(STATE_FILE, "w") as f:
-        json.dump(data, f)
+    try:
+        sent = {f"{k[0]}:{k[1]}": v for k, v in sent_messages.items()}
+        data = {
+            "sent_messages": sent,
+            "active_chats": list(active_chats)
+        }
+        with open(STATE_FILE, "w") as f:
+            json.dump(data, f)
+    except Exception as e:
+        print(f"Error saving state: {e}")
 
 sent_messages, active_chats = load_state()
 
@@ -82,48 +91,52 @@ async def stop_tracking(client, message):
 
 @app.on_raw_update()
 async def raw_handler(client, update, users, chats):
-    if isinstance(update, UpdateReadHistoryOutbox):
-        # Peer can be PeerUser, PeerChat, or PeerChannel
-        # We need to extract the ID
-        peer = update.peer
-        if hasattr(peer, "user_id"):
-            chat_id = peer.user_id
-        elif hasattr(peer, "chat_id"):
-            chat_id = -peer.chat_id
-        elif hasattr(peer, "channel_id"):
-            chat_id = int(f"-100{peer.channel_id}")
-        else:
-            return
+    try:
+        if isinstance(update, UpdateReadHistoryOutbox):
+            peer = update.peer
+            if isinstance(peer, PeerUser):
+                chat_id = peer.user_id
+            elif isinstance(peer, PeerChat):
+                chat_id = -peer.chat_id
+            elif isinstance(peer, PeerChannel):
+                chat_id = int(f"-100{peer.channel_id}")
+            else:
+                return
 
-        max_id = update.max_id
+            max_id = update.max_id
 
-        to_remove = []
-        for (t_chat_id, msg_id) in sent_messages.keys():
-            # Note: MTProto IDs for users are positive, but Pyrogram might use signed IDs.
-            # Usually for private chats it's just user_id.
-            if t_chat_id == chat_id and msg_id <= max_id:
-                await client.send_message(
-                    config.OWNER_ID,
-                    f"👁‍🗨 Message `{msg_id}` in chat `{chat_id}` has been **seen**!"
-                )
-                to_remove.append((t_chat_id, msg_id))
+            to_remove = []
+            for (t_chat_id, msg_id) in list(sent_messages.keys()):
+                if t_chat_id == chat_id and msg_id <= max_id:
+                    try:
+                        await client.send_message(
+                            config.OWNER_ID,
+                            f"👁‍🗨 Message `{msg_id}` in chat `{chat_id}` has been **seen**!"
+                        )
+                        to_remove.append((t_chat_id, msg_id))
+                    except Exception as e:
+                        print(f"Error notifying owner: {e}")
 
-        if to_remove:
-            for key in to_remove:
-                del sent_messages[key]
-            save_state(sent_messages, active_chats)
+            if to_remove:
+                for key in to_remove:
+                    sent_messages.pop(key, None)
+                save_state(sent_messages, active_chats)
+    except Exception as e:
+        # Silently ignore raw update errors to prevent crashing
+        pass
 
 @app.on_message(filters.private & ~filters.me)
 async def reply_handler(client, message):
-    chat_id = message.chat.id
-    if chat_id in active_chats:
-        # Send a header
-        await client.send_message(
-            config.OWNER_ID,
-            f"📩 **New reply from {message.from_user.mention if message.from_user else 'Unknown'}** (`{chat_id}`):"
-        )
-        # Forward the actual message (handles media)
-        await message.copy(config.OWNER_ID)
+    try:
+        chat_id = message.chat.id
+        if chat_id in active_chats:
+            await client.send_message(
+                config.OWNER_ID,
+                f"📩 **New reply from {message.from_user.mention if message.from_user else 'Unknown'}** (`{chat_id}`):"
+            )
+            await message.copy(config.OWNER_ID)
+    except Exception as e:
+        print(f"Error in reply handler: {e}")
 
 if __name__ == "__main__":
     print("Bot is starting...")
