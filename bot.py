@@ -138,6 +138,34 @@ async def reply_handler(client, message):
     except Exception as e:
         print(f"Error in reply handler: {e}")
 
-if __name__ == "__main__":
+async def main():
+    # Basic validation
+    if config.API_ID == 1234567 or config.API_HASH == "your_api_hash_here":
+        print("\n" + "!" * 50)
+        print("❌ ERROR: API_ID or API_HASH is NOT set in config.py!")
+        print("Please go to https://my.telegram.org, get your keys, and put them in config.py.")
+        print("!" * 50 + "\n")
+        return
+
     print("Bot is starting...")
-    app.run()
+    await app.start()
+
+    me = await app.get_me()
+    if me.is_bot:
+        print("\n" + "!" * 50)
+        print("⚠️ WARNING: You are logged in with a BOT TOKEN.")
+        print("Telegram Bots CANNOT see if a message was read (Seen status).")
+        print("To use the 'Seen' feature, you MUST use a PHONE NUMBER.")
+        print("!" * 50 + "\n")
+    else:
+        print(f"Logged in as: {me.first_name} (@{me.username or 'NoUsername'})")
+        print("Everything is ready! Use .msg @username to send a message.")
+
+    await app.idle()
+
+if __name__ == "__main__":
+    import asyncio
+    try:
+        app.run(main())
+    except KeyboardInterrupt:
+        pass

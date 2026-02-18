@@ -1,10 +1,15 @@
-# --- IMPORTANT ---
+# --- IMPORTANT / خیلی مهم ---
 # This is a USERBOT. It works with a TELEGRAM ACCOUNT.
-# 1. If you want to be ANONYMOUS, use a SECONDARY/FAKE account.
-# 2. When the program starts, enter the PHONE NUMBER of that account.
+# ⚠️ Do NOT use a Bot Token (from BotFather) if you want the "Seen" feature.
+# ⚠️ Only PHONE NUMBER login supports "Seen" (Read Receipts).
+#
+# ۱. این برنامه یک «یوزربات» است و با شماره موبایل کار می‌کند.
+# ۲. اگر می‌خواهید پیام‌های شما با تیک دوم (سین شدن) مشخص شود، نباید از بات توکن استفاده کنید.
+# ۳. حتما از شماره موبایل (ترجیحا اکانت فرعی برای ناشناس ماندن) استفاده کنید.
 # -----------------
 
 # Get these from https://my.telegram.org (App ID and App Hash)
+# حتما باید این دو مقدار را از سایت بالا بگیرید و اینجا جایگزین کنید
 API_ID = 1234567
 API_HASH = "your_api_hash_here"
 
