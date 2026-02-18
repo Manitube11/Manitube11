@@ -24,6 +24,7 @@ This is a Telegram Userbot (using Pyrogram) that allows you to send messages to 
    - Open `config.py`.
    - Replace `API_ID` and `API_HASH` with your values.
    - You can leave `OWNER_ID = "me"` to receive notifications on your own account.
+   - **Proxy (Optional):** If Telegram is filtered in your region, configure the `PROXY` variable in `config.py`.
 
 4. **Run the Bot:**
    ```bash
@@ -48,6 +49,7 @@ This is a Telegram Userbot (using Pyrogram) that allows you to send messages to 
 1. دریافت **API_ID** و **API_HASH** از سایت [my.telegram.org](https://my.telegram.org).
 2. نصب کتابخانه‌های مورد نیاز: `pip install -r requirements.txt`.
 3. تنظیم فایل `config.py` با اطلاعات خودتان.
+   - **پروکسی:** اگر تلگرام برای شما فیلتر است، تنظیمات پروکسی را در `config.py` وارد کنید.
 4. اجرای ربات: `python bot.py`.
 
 ### نحوه استفاده:

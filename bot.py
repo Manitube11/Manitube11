@@ -30,7 +30,12 @@ def save_state(sent_messages, active_chats):
 
 sent_messages, active_chats = load_state()
 
-app = Client("my_account", api_id=config.API_ID, api_hash=config.API_HASH)
+app = Client(
+    "my_account",
+    api_id=config.API_ID,
+    api_hash=config.API_HASH,
+    proxy=config.PROXY
+)
 
 @app.on_message(filters.command("start", prefixes=["!", "."]) & filters.me)
 async def start(client, message):
