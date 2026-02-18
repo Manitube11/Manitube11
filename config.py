@@ -14,8 +14,13 @@ API_ID = 1234567
 API_HASH = "your_api_hash_here"
 
 # The ID of the owner who will receive notifications and replies.
-# You can use "me" to receive them on the same account the bot is running on.
-# Or use your numeric User ID (e.g. 12345678) to receive them on your main account.
+# --- IMPORTANT ---
+# If you are using a BOT TOKEN (from BotFather), you MUST put your numeric ID here.
+# Otherwise, the bot won't know you are the owner and won't listen to your commands!
+# Example: OWNER_ID = 12345678
+#
+# اگر از بات توکن استفاده می‌کنید، حتما آیدی عددی خود را اینجا وارد کنید
+# وگرنه ربات دستورات شما را اجرا نمی‌کند
 OWNER_ID = "me"
 
 # Proxy settings (Optional - Highly recommended if you are in Iran)

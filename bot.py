@@ -46,14 +46,30 @@ app = Client(
     proxy=config.PROXY
 )
 
-@app.on_message(filters.command("start", prefixes=["!", "."]) & filters.me)
-async def start(client, message):
-    await message.edit_text("Userbot is running!\nUse `.msg @username Hello` to send a message.")
+# Helper to check if a message is from the owner
+def owner_filter(_, __, message):
+    if config.OWNER_ID == "me":
+        return message.from_user and message.from_user.is_self
+    return message.from_user and (message.from_user.id == config.OWNER_ID or message.from_user.is_self)
 
-@app.on_message(filters.command("msg", prefixes=["!", "."]) & filters.me)
+is_owner = filters.create(owner_filter)
+
+@app.on_message(filters.command("start", prefixes=["!", "."]) & is_owner)
+async def start(client, message):
+    text = "Bot is running!\nUse `.msg @username Hello` to send a message."
+    if message.from_user and message.from_user.is_self:
+        await message.edit_text(text)
+    else:
+        await message.reply_text(text)
+
+@app.on_message(filters.command("msg", prefixes=["!", "."]) & is_owner)
 async def send_msg(client, message):
     if len(message.command) < 3:
-        await message.edit_text("Usage: `.msg @username text`")
+        usage = "Usage: `.msg @username text`"
+        if message.from_user and message.from_user.is_self:
+            await message.edit_text(usage)
+        else:
+            await message.reply_text(usage)
         return
 
     target = message.command[1]
@@ -66,14 +82,30 @@ async def send_msg(client, message):
         active_chats.add(chat_id)
         save_state(sent_messages, active_chats)
 
-        await message.edit_text(f"✅ Message sent to {target} (ID: `{chat_id}`)\nMessage ID: `{sent.id}`\nI'll notify you when they see it!")
-    except Exception as e:
-        await message.edit_text(f"❌ Error: {e}")
+        response = f"✅ Message sent to {target} (ID: `{chat_id}`)\nMessage ID: `{sent.id}`"
+        me = await client.get_me()
+        if not me.is_bot:
+            response += "\nI'll notify you when they see it!"
 
-@app.on_message(filters.command("stop", prefixes=["!", "."]) & filters.me)
+        if message.from_user and message.from_user.is_self:
+            await message.edit_text(response)
+        else:
+            await message.reply_text(response)
+    except Exception as e:
+        err_msg = f"❌ Error: {e}"
+        if message.from_user and message.from_user.is_self:
+            await message.edit_text(err_msg)
+        else:
+            await message.reply_text(err_msg)
+
+@app.on_message(filters.command("stop", prefixes=["!", "."]) & is_owner)
 async def stop_tracking(client, message):
     if len(message.command) < 2:
-        await message.edit_text("Usage: `.stop @username` or `.stop chat_id`")
+        usage = "Usage: `.stop @username` or `.stop chat_id`"
+        if message.from_user and message.from_user.is_self:
+            await message.edit_text(usage)
+        else:
+            await message.reply_text(usage)
         return
 
     target = message.command[1]
@@ -83,11 +115,20 @@ async def stop_tracking(client, message):
         if chat_id in active_chats:
             active_chats.remove(chat_id)
             save_state(sent_messages, active_chats)
-            await message.edit_text(f"Stopped tracking chat `{chat_id}`.")
+            res = f"Stopped tracking chat `{chat_id}`."
         else:
-            await message.edit_text(f"Chat `{chat_id}` was not being tracked.")
+            res = f"Chat `{chat_id}` was not being tracked."
+
+        if message.from_user and message.from_user.is_self:
+            await message.edit_text(res)
+        else:
+            await message.reply_text(res)
     except Exception as e:
-        await message.edit_text(f"❌ Error: {e}")
+        err_msg = f"❌ Error: {e}"
+        if message.from_user and message.from_user.is_self:
+            await message.edit_text(err_msg)
+        else:
+            await message.reply_text(err_msg)
 
 @app.on_raw_update()
 async def raw_handler(client, update, users, chats):
@@ -125,7 +166,7 @@ async def raw_handler(client, update, users, chats):
         # Silently ignore raw update errors to prevent crashing
         pass
 
-@app.on_message(filters.private & ~filters.me)
+@app.on_message(filters.private & ~is_owner)
 async def reply_handler(client, message):
     try:
         chat_id = message.chat.id
@@ -152,14 +193,16 @@ async def main():
 
     me = await app.get_me()
     if me.is_bot:
-        print("\n" + "!" * 50)
-        print("⚠️ WARNING: You are logged in with a BOT TOKEN.")
-        print("Telegram Bots CANNOT see if a message was read (Seen status).")
-        print("To use the 'Seen' feature, you MUST use a PHONE NUMBER.")
-        print("!" * 50 + "\n")
+        print(f"Logged in as BOT: {me.first_name} (@{me.username})")
+        if config.OWNER_ID == "me":
+            print("\n" + "!" * 50)
+            print("⚠️ IMPORTANT: You are using a BOT TOKEN but OWNER_ID is not set!")
+            print("Please set your numeric User ID in config.py so you can control the bot.")
+            print("!" * 50 + "\n")
     else:
-        print(f"Logged in as: {me.first_name} (@{me.username or 'NoUsername'})")
-        print("Everything is ready! Use .msg @username to send a message.")
+        print(f"Logged in as USER: {me.first_name} (@{me.username or 'NoUsername'})")
+
+    print("Everything is ready! Send .msg @username to the bot to use it.")
 
     await idle()
 
