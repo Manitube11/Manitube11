@@ -3,6 +3,7 @@ import os
 import logging
 from pyrogram import Client, filters, enums, idle
 from pyrogram.raw.types import UpdateReadHistoryOutbox, PeerUser, PeerChat, PeerChannel
+from pyrogram.errors import PeerIdInvalid, UserIsBlocked, BotMethodInvalid
 import config
 
 # Setup logging to see errors without crashing
@@ -46,17 +47,35 @@ app = Client(
     proxy=config.PROXY
 )
 
+# Global to store if we've alerted about OWNER_ID in this session
+alerted_owner = False
+
 # Helper to check if a message is from the owner
 def owner_filter(_, __, message):
+    if not message.from_user:
+        return False
+
     if config.OWNER_ID == "me":
-        return message.from_user and message.from_user.is_self
-    return message.from_user and (message.from_user.id == config.OWNER_ID or message.from_user.is_self)
+        return message.from_user.is_self
+
+    try:
+        owner_id = int(config.OWNER_ID)
+    except:
+        owner_id = config.OWNER_ID
+
+    return message.from_user.id == owner_id or message.from_user.is_self
 
 is_owner = filters.create(owner_filter)
 
 @app.on_message(filters.command("start", prefixes=["!", "."]) & is_owner)
-async def start(client, message):
-    text = "Bot is running!\nUse `.msg @username Hello` to send a message."
+async def start_cmd(client, message):
+    text = (
+        "✅ Bot is active and ready!\n\n"
+        "Commands:\n"
+        "`.msg @username text` - Send a message to someone.\n"
+        "`.stop @username` - Stop tracking a chat.\n\n"
+        "**Note:** If you are using a Bot Token, you can ONLY message users who have already started this bot."
+    )
     if message.from_user and message.from_user.is_self:
         await message.edit_text(text)
     else:
@@ -86,11 +105,23 @@ async def send_msg(client, message):
         me = await client.get_me()
         if not me.is_bot:
             response += "\nI'll notify you when they see it!"
+        else:
+            response += "\n⚠️ NOTE: Bot tokens cannot see if a message was 'Seen' (Read Receipt). Only User accounts can."
 
         if message.from_user and message.from_user.is_self:
             await message.edit_text(response)
         else:
             await message.reply_text(response)
+    except (PeerIdInvalid, ValueError):
+        err_msg = (
+            f"❌ **Error: Cannot find user `{target}`.**\n\n"
+            "If you are using a **Bot Token**, you CANNOT message people who haven't started the bot first.\n"
+            "اگر از ربات توکن استفاده می‌کنید، نمی‌توانید به کسی که ربات را استارت نکرده پیام بدهید."
+        )
+        if message.from_user and message.from_user.is_self:
+            await message.edit_text(err_msg)
+        else:
+            await message.reply_text(err_msg)
     except Exception as e:
         err_msg = f"❌ Error: {e}"
         if message.from_user and message.from_user.is_self:
@@ -150,10 +181,13 @@ async def raw_handler(client, update, users, chats):
             for (t_chat_id, msg_id) in list(sent_messages.keys()):
                 if t_chat_id == chat_id and msg_id <= max_id:
                     try:
-                        await client.send_message(
-                            config.OWNER_ID,
-                            f"👁‍🗨 Message `{msg_id}` in chat `{chat_id}` has been **seen**!"
-                        )
+                        # Find owner to notify
+                        owner = config.OWNER_ID
+                        if owner == "me":
+                            # If it's a userbot, it can message itself
+                            await client.send_message("me", f"👁‍🗨 Message `{msg_id}` has been **seen**!")
+                        else:
+                            await client.send_message(owner, f"👁‍🗨 Message `{msg_id}` has been **seen**!")
                         to_remove.append((t_chat_id, msg_id))
                     except Exception as e:
                         print(f"Error notifying owner: {e}")
@@ -163,7 +197,6 @@ async def raw_handler(client, update, users, chats):
                     sent_messages.pop(key, None)
                 save_state(sent_messages, active_chats)
     except Exception as e:
-        # Silently ignore raw update errors to prevent crashing
         pass
 
 @app.on_message(filters.private & ~is_owner)
@@ -174,57 +207,62 @@ async def unauthorized_or_reply_handler(client, message):
 
         # If it's a reply from someone we messaged
         if chat_id in active_chats:
-            if config.OWNER_ID != "me":
-                await client.send_message(
-                    config.OWNER_ID,
-                    f"📩 **New reply from {message.from_user.mention if message.from_user else 'Unknown'}** (`{chat_id}`):"
-                )
-                await message.copy(config.OWNER_ID)
+            owner = config.OWNER_ID
+            if owner == "me":
+                # For userbots, replies just show up in chat,
+                # but we can log them if needed.
+                return
+
+            await client.send_message(
+                owner,
+                f"📩 **New reply from {message.from_user.mention if message.from_user else 'Unknown'}** (`{chat_id}`):"
+            )
+            await message.copy(owner)
             return
 
         # If someone is trying to use the bot but isn't the owner
         if me.is_bot:
             user_id = message.from_user.id if message.from_user else "Unknown"
             text = (
-                f"❌ You are not authorized to use this bot.\n\n"
-                f"Your ID: `{user_id}`\n\n"
-                f"To use the bot, you must put this ID in `config.py` like this:\n"
+                f"⚠️ **Authorization Required**\n\n"
+                f"Your User ID: `{user_id}`\n\n"
+                f"To control this bot, you MUST set your ID in `config.py`:\n"
                 f"`OWNER_ID = {user_id}`\n\n"
-                f"--- راهنما ---\n"
-                f"شما اجازه دسترسی به این ربات را ندارید.\n"
-                f"آیدی شما: `{user_id}`\n"
-                f"این آیدی را در فایل `config.py` مقابل عبارت `OWNER_ID` قرار دهید و ربات را دوباره اجرا کنید."
+                f"سپس ربات را دوباره اجرا کنید."
             )
             await message.reply_text(text)
+            print(f"DEBUG: Unauthorized user {user_id} tried to message the bot.")
     except Exception as e:
         print(f"Error in handler: {e}")
 
 async def main():
-    # Basic validation
     if config.API_ID == 1234567 or config.API_HASH == "your_api_hash_here":
         print("\n" + "!" * 50)
         print("❌ ERROR: API_ID or API_HASH is NOT set in config.py!")
-        print("Please go to https://my.telegram.org, get your keys, and put them in config.py.")
         print("!" * 50 + "\n")
         return
 
-    print("Bot is starting...")
-    await app.start()
+    print("Starting client...")
+    try:
+        await app.start()
+    except Exception as e:
+        print(f"❌ Failed to start: {e}")
+        return
 
     me = await app.get_me()
     if me.is_bot:
-        print(f"Logged in as BOT: {me.first_name} (@{me.username})")
+        print(f"✅ Logged in as BOT: {me.first_name} (@{me.username})")
         if config.OWNER_ID == "me":
             print("\n" + "!" * 50)
-            print("⚠️ IMPORTANT: You are using a BOT TOKEN but OWNER_ID is not set!")
-            print("Please set your numeric User ID in config.py so you can control the bot.")
+            print("⚠️ IMPORTANT: OWNER_ID is not set!")
+            print("Message the bot now, it will tell you your ID.")
             print("!" * 50 + "\n")
     else:
-        print(f"Logged in as USER: {me.first_name} (@{me.username or 'NoUsername'})")
+        print(f"✅ Logged in as USER: {me.first_name} (@{me.username or 'NoUsername'})")
 
-    print("Everything is ready! Send .msg @username to the bot to use it.")
-
+    print("Everything is ready!")
     await idle()
+    await app.stop()
 
 if __name__ == "__main__":
     import asyncio
