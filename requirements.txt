@@ -1,0 +1,9 @@
+# Pinning python-telegram-bot to a slightly older version to avoid Python 3.13 slot issues
+python-telegram-bot==21.10
+requests
+pandas
+pandas_ta
+yfinance
+google-genai
+apscheduler
+python-dotenv
