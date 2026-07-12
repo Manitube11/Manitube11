@@ -32,23 +32,17 @@
 
 ## 🚀 Featured Projects
 
-<div align="center">
-
-<a href="https://github.com/Manitube11/ai-code-review-assistant">
-  <img src="https://github-readme-stats.vercel.app/api/pin/?username=Manitube11&repo=ai-code-review-assistant&theme=tokyonight&hide_border=true" alt="AI Code Review Assistant"/>
-</a>
-<a href="https://github.com/Manitube11/username-intelligence-platform">
-  <img src="https://github-readme-stats.vercel.app/api/pin/?username=Manitube11&repo=username-intelligence-platform&theme=tokyonight&hide_border=true" alt="Username Intelligence Platform"/>
-</a>
-
-</div>
+| Project | Description | Tech | Stats |
+|:--|:--|:--:|:--:|
+| **[AI Code Review Assistant](https://github.com/Manitube11/ai-code-review-assistant)** | AI assistant that checks, debugs, and improves your code | `TypeScript` | ![Stars](https://img.shields.io/github/stars/Manitube11/ai-code-review-assistant?style=flat-square&color=e3b341) ![Forks](https://img.shields.io/github/forks/Manitube11/ai-code-review-assistant?style=flat-square&color=8b949e) |
+| **[Username Intelligence Platform](https://github.com/Manitube11/username-intelligence-platform)** | AI-driven platform that generates, analyzes & scores up to 1,000,000 usernames — leet-speak, advanced filters, glassmorphism UI | `TypeScript` | ![Stars](https://img.shields.io/github/stars/Manitube11/username-intelligence-platform?style=flat-square&color=e3b341) |
 
 ## 📊 GitHub Stats
 
 <div align="center">
 
-<img height="170" src="https://github-readme-stats.vercel.app/api?username=Manitube11&show_icons=true&theme=tokyonight&hide_border=true&rank_icon=github" alt="GitHub stats"/>
-<img height="170" src="https://github-readme-stats.vercel.app/api/top-langs/?username=Manitube11&layout=compact&theme=tokyonight&hide_border=true" alt="Top languages"/>
+<img height="180" src="https://github-profile-summary-cards.vercel.app/api/cards/stats?username=Manitube11&theme=tokyonight" alt="GitHub stats"/>
+<img height="180" src="https://github-profile-summary-cards.vercel.app/api/cards/repos-per-language?username=Manitube11&theme=tokyonight" alt="Top languages by repo"/>
 
 <br/><br/>
 
