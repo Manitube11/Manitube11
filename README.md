@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0f2027,50:203a43,100:2c5364&height=190&section=header&text=Mani%20%E2%80%A2%20ManiTube&fontSize=44&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Cybersecurity%20Student%20%C2%B7%20Python%20%26%20Bash%20%C2%B7%20AI-Assisted%20Builder&descSize=16&descAlignY=55" width="100%" alt="Header banner"/>
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0f2027,50:203a43,100:2c5364&height=190&section=header&text=Mani%20%E2%80%A2%20ManiTube&fontSize=44&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=Cybersecurity%20Student%20%C2%B7%20Python%2C%20Bash%20%C2%B7%20AI-Assisted%20Builder&descSize=16&descAlignY=55" width="100%" alt="Header banner"/>
 
 <img src="https://readme-typing-svg.demolab.com/?font=Fira+Code&weight=600&size=22&duration=3000&pause=1000&center=true&vCenter=true&width=520&lines=Cybersecurity+%26+Ethical+Hacking+%F0%9F%94%90;Python+%26+Bash+Scripting+%F0%9F%90%8D;Building+with+AI+%F0%9F%A4%96" alt="Typing animation"/>
 
