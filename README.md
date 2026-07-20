@@ -36,8 +36,7 @@
 
 | Project | Description | Tech | Stats |
 |:--|:--|:--:|:--:|
-| **[AI Code Review Assistant](https://github.com/Manitube11/ai-code-review-assistant)** | AI assistant that checks, debugs, and improves your code | `TypeScript` | ![Stars](https://img.shields.io/github/stars/Manitube11/ai-code-review-assistant?style=flat-square&color=e3b341) ![Forks](https://img.shields.io/github/forks/Manitube11/ai-code-review-assistant?style=flat-square&color=8b949e) |
-| **[Username Intelligence Platform](https://github.com/Manitube11/username-intelligence-platform)** | AI-driven platform that generates, analyzes & scores up to 1,000,000 usernames — leet-speak, advanced filters, glassmorphism UI | `TypeScript` | ![Stars](https://img.shields.io/github/stars/Manitube11/username-intelligence-platform?style=flat-square&color=e3b341) |
+| **[WINGRID MT](https://github.com/Manitube11/WINGRID-MT)** | Hotkey-driven window sizing, letterboxing, borderless mode, and zoom magnifier for Windows | `Python` | ![Stars](https://img.shields.io/github/stars/Manitube11/WINGRID-MT?style=flat-square&color=e3b341) ![Forks](https://img.shields.io/github/forks/Manitube11/WINGRID-MT?style=flat-square&color=8b949e) |
 
 ## 📊 GitHub Stats
 
