@@ -13,12 +13,12 @@
 
 </div>
 
-## 🧠 About Me
+## 🧑‍💻 About Me
 
-- 🔐 Cybersecurity student — my main focus is **ethical hacking & security**
+- 🔒 Cybersecurity student — my main focus is **ethical hacking & security**
 - 🐧 I work in **Linux / Kali Linux** with security tooling like **Nmap, Wireshark & Burp Suite**
 - 🐍 I script in **Python** and **Bash**
-- 🤖 I'm transparent about my workflow: a big part of my coding is **AI-assisted** — I design the idea, drive the AI, review and ship it. Security is my own craft.
+- 🤝 I'm transparent about my workflow: a big part of my coding is **AI-assisted** — I design the idea, drive the AI, review and ship it. Security is my own craft.
 - 📚 Always learning — networks, systems, and how things break
 
 ## 🛠️ Tech Stack
@@ -35,8 +35,9 @@
 > ⚡ **Transparency:** these projects are built **with AI assistance** — I come up with the idea, direct the AI, review the result, and ship it.
 
 | Project | Description | Tech | Stats |
-|:--|:--|:--:|:--:|
-| **[WINGRID MT](https://github.com/Manitube11/WINGRID-MT)** | Hotkey-driven window sizing, letterboxing, borderless mode, and zoom magnifier for Windows | `Python` | ![Stars](https://img.shields.io/github/stars/Manitube11/WINGRID-MT?style=flat-square&color=e3b341) ![Forks](https://img.shields.io/github/forks/Manitube11/WINGRID-MT?style=flat-square&color=8b949e) |
+|:---|:---|:---:|:---:|
+| **[CyberSentinel PRO](https://github.com/Manitube11/cybersentinel-suite)** | Advanced LSB image steganography, bit-plane steganalysis, and AI SAST code security auditor | TypeScript React | ![Stars](https://img.shields.io/github/stars/Manitube11/cybersentinel-suite?style=flat-square&color=e3b341) ![Forks](https://img.shields.io/github/forks/Manitube11/cybersentinel-suite?style=flat-square&color=8b949e) |
+| **[WINGRID MT](https://github.com/Manitube11/WINGRID-MT)** | Hotkey-driven window sizing, letterboxing, borderless mode, and zoom magnifier for Windows | Python | ![Stars](https://img.shields.io/github/stars/Manitube11/WINGRID-MT?style=flat-square&color=e3b341) ![Forks](https://img.shields.io/github/forks/Manitube11/WINGRID-MT?style=flat-square&color=8b949e) |
 
 ## 📊 GitHub Stats
 
@@ -51,7 +52,7 @@
 
 </div>
 
-## 📫 Get in Touch
+## 📬 Get in Touch
 
 <div align="center">
 
